@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mentor-Mentee Portal | Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Lato:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-family: 'Lato', sans-serif; }
+    h1, h2, h3, label, .brand { font-family: 'Nunito', sans-serif; }
+
+    .bg-campus {
+      background-color: #1a3557;
+      background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(34,99,170,0.45) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(14,165,100,0.18) 0%, transparent 55%);
+    }
+
+    .card-shadow {
+      box-shadow: 0 8px 40px rgba(26,53,87,0.18), 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .role-btn {
+      transition: all 0.2s ease;
+      border: 2px solid #d1d5db;
+    }
+    .role-btn:hover {
+      border-color: #2563eb;
+      background-color: #eff6ff;
+    }
+    .role-btn.selected {
+      border-color: #1d4ed8;
+      background-color: #dbeafe;
+    }
+    .role-btn.selected .role-icon {
+      background-color: #1d4ed8;
+      color: white;
+    }
+
+    .input-field {
+      border: 2px solid #e5e7eb;
+      transition: border-color 0.2s;
+    }
+    .input-field:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+
+    .btn-login {
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+      transition: all 0.2s ease;
+    }
+    .btn-login:hover {
+      background: linear-gradient(135deg, #1e40af, #1d4ed8);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(29,78,216,0.35);
+    }
+    .btn-login:active { transform: translateY(0); }
+
+    .error-msg {
+      display: none;
+      animation: shake 0.3s ease;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+    .error-msg.show { display: flex; }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-campus flex items-center justify-center p-4">
+
+  <!-- Main Card -->
+  <div class="bg-white rounded-2xl card-shadow w-full max-w-md fade-in overflow-hidden">
+
+    <!-- Header Banner -->
+    <div class="bg-gradient-to-r from-blue-800 to-blue-600 px-8 py-6 text-white text-center">
+      <div class="flex justify-center mb-3">
+        <div class="w-14 h-14 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422A12.083 12.083 0 0121 21H3a12.083 12.083 0 012.84-10.422L12 14z"/>
+          </svg>
+        </div>
+      </div>
+      <h1 class="brand text-2xl font-extrabold tracking-wide">Mentor-Mentee Portal</h1>
+      <p class="text-blue-200 text-sm mt-1">University Guidance &amp; Support System</p>
+    </div>
+
+    <!-- Form Section -->
+    <div class="px-8 py-7">
+
+      <!-- Role Selection -->
+      <div class="mb-6">
+        <p class="text-gray-600 text-sm font-semibold mb-3">I am logging in as:</p>
+        <div class="grid grid-cols-3 gap-3">
+
+          <button type="button" onclick="selectRole('mentee')" id="role-mentee"
+            class="role-btn rounded-xl py-3 px-2 flex flex-col items-center gap-1 cursor-pointer bg-white">
+            <div class="role-icon w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 14c3.866 0 7 1.343 7 3v1H5v-1c0-1.657 3.134-3 7-3zm0-2a4 4 0 100-8 4 4 0 000 8z"/>
+              </svg>
+            </div>
+            <span class="text-xs font-semibold text-gray-700">Student</span>
+          </button>
+
+          <button type="button" onclick="selectRole('mentor')" id="role-mentor"
+            class="role-btn rounded-xl py-3 px-2 flex flex-col items-center gap-1 cursor-pointer bg-white">
+            <div class="role-icon w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-4-4h-1m-6 6H2v-2a4 4 0 014-4h1m6 0a4 4 0 100-8 4 4 0 000 8zm-6 0a4 4 0 100-8 4 4 0 000 8z"/>
+              </svg>
+            </div>
+            <span class="text-xs font-semibold text-gray-700">Mentor</span>
+          </button>
+
+          <button type="button" onclick="selectRole('management')" id="role-management"
+            class="role-btn rounded-xl py-3 px-2 flex flex-col items-center gap-1 cursor-pointer bg-white">
+            <div class="role-icon w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-3-3v6m-7 4h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+            </div>
+            <span class="text-xs font-semibold text-gray-700">Management</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      <div id="error-box" class="error-msg bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        </svg>
+        <span id="error-text">Please select your role before logging in.</span>
+      </div>
+
+      <!-- Login Form -->
+      <div class="space-y-4">
+
+        <div>
+          <label for="userid" class="block text-sm font-semibold text-gray-700 mb-1">
+            University ID / Email
+          </label>
+          <input
+            type="text"
+            id="userid"
+            placeholder="e.g. 2021CS001 or name@university.edu"
+            class="input-field w-full rounded-lg px-4 py-3 text-gray-800 text-sm bg-gray-50"
+          />
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-semibold text-gray-700 mb-1">
+            Password
+          </label>
+          <div class="relative">
+            <input
+              type="password"
+              id="password"
+              placeholder="Enter your password"
+              class="input-field w-full rounded-lg px-4 py-3 pr-12 text-gray-800 text-sm bg-gray-50"
+            />
+            <button type="button" onclick="togglePassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+              <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+          </div>
+          <div class="text-right mt-1">
+            <a href="#" class="text-blue-600 text-xs hover:underline font-semibold">Forgot Password?</a>
+          </div>
+        </div>
+
+        <button type="button" onclick="handleLogin()"
+          class="btn-login w-full text-white font-bold py-3 rounded-lg text-base mt-2 flex items-center justify-center gap-2">
+          <span id="btn-text">Login</span>
+          <svg id="btn-arrow" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+          </svg>
+          <svg id="btn-spinner" class="hidden animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+          </svg>
+        </button>
+
+      </div>
+
+      <div class="flex items-center gap-3 my-5">
+        <div class="flex-1 h-px bg-gray-200"></div>
+        <span class="text-gray-400 text-xs font-semibold">NEED HELP?</span>
+        <div class="flex-1 h-px bg-gray-200"></div>
+      </div>
+
+      <p class="text-center text-sm text-gray-500">
+        Contact your coordinator or email
+        <a href="mailto:support@university.edu" class="text-blue-600 font-semibold hover:underline">support@university.edu</a>
+      </p>
+
+    </div>
+
+    <div class="bg-gray-50 border-t border-gray-100 px-8 py-3 text-center text-xs text-gray-400">
+      &copy; 2025 University Mentor-Mentee System &nbsp;|&nbsp; All rights reserved
+    </div>
+
+  </div>
+
+  <!-- Success Toast -->
+  <div id="toast" class="fixed top-6 right-6 bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-3 opacity-0 pointer-events-none transition-all duration-300 z-50">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+    </svg>
+    <span id="toast-text">Login successful! Redirecting...</span>
+  </div>
+
+  <script>
+    let selectedRole = null;
+
+    function selectRole(role) {
+      selectedRole = role;
+      ['mentee','mentor','management'].forEach(r => {
+        document.getElementById('role-'+r).classList.remove('selected');
+      });
+      document.getElementById('role-'+role).classList.add('selected');
+      hideError();
+    }
+
+    function togglePassword() {
+      const pw = document.getElementById('password');
+      const isText = pw.type === 'text';
+      pw.type = isText ? 'password' : 'text';
+      document.getElementById('eye-icon').innerHTML = isText
+        ? `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`
+        : `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 012.121-3.344m3.16-2.478A9.965 9.965 0 0112 5c4.477 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411M3 3l18 18"/>`;
+    }
+
+    function showError(msg) {
+      const box = document.getElementById('error-box');
+      document.getElementById('error-text').textContent = msg;
+      box.classList.add('show');
+    }
+    function hideError() {
+      document.getElementById('error-box').classList.remove('show');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-text').textContent = msg;
+      t.style.opacity = '1';
+      setTimeout(() => { t.style.opacity = '0'; }, 3000);
+    }
+
+    function handleLogin() {
+      const userid = document.getElementById('userid').value.trim();
+      const password = document.getElementById('password').value.trim();
+      hideError();
+
+      if (!selectedRole) {
+        showError('Please select your role — Student, Mentor, or Management.');
+        return;
+      }
+      if (!userid) {
+        showError('Please enter your University ID or Email.');
+        return;
+      }
+      if (!password) {
+        showError('Please enter your password.');
+        return;
+      }
+
+      document.getElementById('btn-text').textContent = 'Logging in...';
+      document.getElementById('btn-arrow').classList.add('hidden');
+      document.getElementById('btn-spinner').classList.remove('hidden');
+
+      // Simulate API call — replace with real fetch to backend
+      setTimeout(() => {
+        document.getElementById('btn-text').textContent = 'Login';
+        document.getElementById('btn-arrow').classList.remove('hidden');
+        document.getElementById('btn-spinner').classList.add('hidden');
+
+        const roleLabel = selectedRole === 'mentee' ? 'Student' : selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1);
+        showToast('Welcome! Redirecting to ' + roleLabel + ' Dashboard...');
+
+         
+         setTimeout(() => {
+           if (selectedRole === 'mentee')      window.location.href = 'mentee/dashboard.html';
+           else if (selectedRole === 'mentor')  window.location.href = 'mentor_dash.html';
+           else                                 window.location.href = 'management/dashboard.html';
+        }, 1500);
+      }, 1500);
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') handleLogin();
+    });
+  </script>
+
+</body>
+</html>
