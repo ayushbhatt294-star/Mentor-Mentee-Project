@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mentee Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Lato:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-family: 'Lato', sans-serif; background-color: #f1f5f9; }
+    h1,h2,h3,.brand { font-family: 'Nunito', sans-serif; }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed; top: 0; left: 0; height: 100vh; width: 230px;
+      background: linear-gradient(180deg, #1e3a5f 0%, #1a3557 100%);  
+      z-index: 40; transition: transform 0.3s ease;
+      display: flex; flex-direction: column;
+    }
+    .sidebar-link {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 20px; border-radius: 10px; margin: 2px 10px;
+      color: #c9d9ee; font-size: 0.92rem; font-weight: 600;
+      cursor: pointer; transition: all 0.18s ease; text-decoration: none;
+    }
+    .sidebar-link:hover { background: rgba(255,255,255,0.1); color: white; }
+    .sidebar-link.active { background: rgba(255,255,255,0.15); color: white; }
+    .sidebar-link .icon { width: 20px; height: 20px; flex-shrink: 0; }
+
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45); z-index: 35;
+    }
+    .overlay.show { display: block; }
+
+    .main { margin-left: 230px; min-height: 100vh; }
+
+    .topbar {
+      background: white; border-bottom: 1px solid #e2e8f0;
+      padding: 14px 24px; display: flex; align-items: center;
+      justify-content: space-between; position: sticky; top: 0; z-index: 30;
+    }
+
+    .stat-card {
+      background: white; border-radius: 14px;
+      padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+
+    .card {
+      background: white; border-radius: 14px;
+      padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    .badge-verified   { background:#dcfce7; color:#15803d; }
+    .badge-pending    { background:#fef9c3; color:#a16207; }
+    .badge-unverified { background:#fee2e2; color:#b91c1c; }
+
+    .fade-up {
+      opacity: 0; transform: translateY(16px);
+      animation: fadeUp 0.4s ease forwards;
+    }
+    @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+    .fade-up:nth-child(1) { animation-delay: 0.05s; }
+    .fade-up:nth-child(2) { animation-delay: 0.10s; }
+    .fade-up:nth-child(3) { animation-delay: 0.15s; }
+    .fade-up:nth-child(4) { animation-delay: 0.20s; }
+
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; }
+      .topbar { padding: 12px 16px; }
+    }
+
+    .progress-bar { height: 8px; border-radius: 99px; background: #e2e8f0; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #2563eb, #38bdf8); transition: width 0.6s ease; }
+
+    .notif-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; display: inline-block; }
+
+    .log-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0; border-bottom: 1px solid #f1f5f9;
+    }
+    .log-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+    .avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.85rem; font-family: 'Nunito', sans-serif;
+      flex-shrink: 0;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 32px 16px; color: #94a3b8;
+    }
+    .empty-state svg { margin: 0 auto 12px; opacity: 0.4; }
+    .empty-state p { font-size: 0.875rem; font-weight: 600; }
+    .empty-state span { font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- ===== SIDEBAR ===== -->
+<aside class="sidebar" id="sidebar">
+  <!-- Brand -->
+  <div class="px-5 py-5 border-b border-white border-opacity-10">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 bg-white bg-opacity-20 rounded-lg flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422A12.083 12.083 0 0121 21H3a12.083 12.083 0 012.84-10.422L12 14z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="brand text-white font-extrabold text-sm leading-tight">Mentee Portal</p>
+        <p class="text-blue-300 text-xs">University</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mentee Info — populated via JS from API -->
+  <div class="px-5 py-4 border-b border-white border-opacity-10">
+    <div class="flex items-center gap-3">
+      <!-- Avatar: show image if imagepath exists, else initials -->
+      <div class="avatar bg-blue-400 text-white" id="sidebar-avatar" style="width:42px;height:42px;font-size:1rem;">--</div>
+      <div>
+        <p class="text-white font-bold text-sm leading-tight" id="sidebar-name">Loading...</p>
+        <p class="text-blue-300 text-xs" id="sidebar-program">--</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nav Links -->
+  <nav class="flex-1 py-4 overflow-y-auto">
+    <p class="text-blue-400 text-xs font-bold uppercase px-5 mb-2 tracking-wider">Menu</p>
+
+    <a href="mentee-dashboard.html" class="sidebar-link active">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+      </svg>
+      Dashboard
+    </a>
+
+    <a href="mentee-profile.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+      </svg>
+      My Profile
+    </a>
+
+    <a href="mentee-logs.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      My Logs
+    </a>
+
+    <a href="mentee-schedule.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+      Schedule &amp; Reminders
+    </a>
+
+    <a href="mentee-activities.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+      </svg>
+      Activities
+    </a>
+
+    <a href="mentee-settings.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1。
+      </svg>
+      Settings
+    </a>
+
+    <a href="mentee-help.html" class="sidebar-link">  
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      Help &amp; Support
+    </a>
+
+    <div class="h-px bg-white bg-opacity-10 mx-5 my-3"></div>
+
+    <a href="login.html" class="sidebar-link" style="color:#f87171;">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/>
+      </svg>
+      Logout
+    </a>
+  </nav>
+</aside>
+
+<!-- ===== MAIN CONTENT ===== -->
+<div class="main">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="flex items-center gap-3">
+      <button onclick="openSidebar()" class="md:hidden text-gray-500 hover:text-blue-700 transition-colors">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      <div>
+        <h1 class="brand text-lg font-extrabold text-gray-800 leading-tight">Dashboard</h1>
+        <p class="text-xs text-gray-400 hidden sm:block" id="topbar-welcome">Welcome back</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="text-xs text-gray-400 hidden sm:block" id="current-date"></span>
+      <button class="relative p-2 rounded-lg hover:bg-gray-100 transition-colors" id="notif-btn">
+        <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        <!-- dot shown only when unread notifications exist -->
+        <span class="notif-dot absolute top-1.5 right-1.5 hidden" id="notif-dot"></span>
+      </button>
+      <div class="avatar bg-blue-700 text-white" id="topbar-avatar" style="width:36px;height:36px;font-size:0.8rem;">--</div>
+    </div>
+  </header>
+
+  <!-- Page Content -->
+  <div class="p-4 md:p-6 max-w-5xl mx-auto">
+
+    <!-- ── Stat Cards ── -->
+    <!--
+      DATA BINDING NOTES:
+      Each card value is populated by fetchDashboardStats(rollNo) via API.
+      Fields map to:
+        stat-total-interactions  ← COUNT(*) FROM MentorInteraction WHERE RollNo = ?
+        stat-upcoming-sessions   ← COUNT(*) FROM MeetingSchedule WHERE RollNo = ? AND ScheduledDateTime > NOW() AND Status = 'Scheduled'
+        stat-pending-logs        ← COUNT(*) FROM MentorInteraction WHERE RollNo = ? AND MenteeVerified = 0
+        stat-activities          ← COUNT(*) FROM ExtracurricularActivity WHERE RollNo = ?
+    -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+
+      <div class="stat-card fade-up">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 16c0 1.105-3.582 2-8 2s-8-.895-8-2V8c0-1.105 3.582-2 8-2s8 .895 8 2v8z"/>
+            </svg>
+          </div>
+        </div>
+        <p class="text-2xl font-extrabold text-gray-800 brand" id="stat-total-interactions">—</p>
+        <p class="text-xs text-gray-500 font-semibold mt-0.5">Total Interactions</p>
+      </div>
+
+      <div class="stat-card fade-up">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+        </div>
+        <p class="text-2xl font-extrabold text-gray-800 brand" id="stat-upcoming-sessions">—</p>
+        <p class="text-xs text-gray-500 font-semibold mt-0.5">Upcoming Sessions</p>
+      </div>
+
+      <div class="stat-card fade-up">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+        <p class="text-2xl font-extrabold text-gray-800 brand" id="stat-pending-logs">—</p>
+        <p class="text-xs text-gray-500 font-semibold mt-0.5">Pending Sign-offs</p>
+      </div>
+
+      <div class="stat-card fade-up">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+            </svg>
+          </div>
+        </div>
+        <p class="text-2xl font-extrabold text-gray-800 brand" id="stat-activities">—</p>
+        <p class="text-xs text-gray-500 font-semibold mt-0.5">Activities Logged</p>
+      </div>
+
+    </div>
+
+    <!-- ── Two Column Layout ── -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+
+      <!-- My Mentor Info -->
+      <!--
+        DATA BINDING:
+        fetchMentorInfo(rollNo) →
+          SELECT fm.EmpName, fm.Imagepath, fm.EmpNo
+          FROM FacultyMaster fm
+          JOIN MentorMentee mm ON mm.FacultyID = fm.FacultyID
+          WHERE mm.RollNo = ?
+      -->
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="brand font-bold text-gray-800 text-base">My Mentor</h2>
+          <a href="mentee-profile.html" class="text-blue-600 text-xs font-bold hover:underline">View Profile →</a>
+        </div>
+
+        <div id="mentor-info-block">
+          <!-- Populated by JS -->
+          <div class="empty-state">
+            <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+            <p>No mentor assigned yet</p>
+            <span>Contact administration for assignment</span>
+          </div>
+        </div>
+
+        <!-- Mentor info template (hidden; cloned by JS when data loads) -->
+        <template id="mentor-info-template">
+          <div class="flex items-center gap-4 p-3 bg-blue-50 rounded-xl">
+            <div class="avatar bg-blue-700 text-white mentor-avatar" style="width:52px;height:52px;font-size:1.1rem;"></div>
+            <div class="flex-1">
+              <p class="font-bold text-gray-800 mentor-name text-base"></p>
+              <p class="text-xs text-gray-500 mentor-dept mt-0.5"></p>
+              <p class="text-xs text-blue-600 font-semibold mentor-empno mt-1"></p>
+            </div>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div class="bg-gray-50 rounded-lg p-2.5">
+              <p class="text-gray-400 font-semibold">Email</p>
+              <p class="text-gray-700 font-bold mentor-email mt-0.5 truncate"></p>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-2.5">
+              <p class="text-gray-400 font-semibold">Last Meeting</p>
+              <p class="text-gray-700 font-bold mentor-last-meeting mt-0.5"></p>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Upcoming Sessions -->
+      <!--
+        DATA BINDING:
+        fetchUpcomingSessions(rollNo) →
+          SELECT ScheduleID, ScheduledDateTime, MeetingType, Venue, Agenda, Status
+          FROM MeetingSchedule
+          WHERE RollNo = ? AND ScheduledDateTime >= GETDATE() AND Status = 'Scheduled'
+          ORDER BY ScheduledDateTime ASC
+          LIMIT 3
+      -->
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="brand font-bold text-gray-800 text-base">Upcoming Sessions</h2>
+          <a href="mentee-schedule.html" class="text-blue-600 text-xs font-bold hover:underline">View All →</a>
+        </div>
+
+        <div id="upcoming-sessions-list">
+          <div class="empty-state">
+            <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <p>No upcoming sessions</p>
+            <span>Your mentor hasn't scheduled any yet</span>
+          </div>
+        </div>
+
+        <!-- Session item template -->
+        <template id="session-item-template">
+          <div class="flex gap-3 items-start p-3 session-bg rounded-xl mb-2 last:mb-0">
+            <div class="session-color text-white rounded-lg px-2.5 py-1.5 text-center min-w-[44px]">
+              <p class="text-xs font-bold leading-none session-month"></p>
+              <p class="text-lg font-extrabold brand leading-tight session-day"></p>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-bold text-gray-800 session-agenda"></p>
+              <p class="text-xs text-gray-500 session-type"></p>
+              <p class="text-xs font-semibold mt-0.5 session-time-venue"></p>
+            </div>
+          </div>
+        </template>
+      </div>
+
+    </div>
+
+    <!-- ── Recent Interaction Logs ── -->
+    <!--
+      DATA BINDING:
+      fetchRecentLogs(rollNo) →
+        SELECT InteractionID, InteractionDate, AcademicRemarks, MenteeVerified, FacultyVerified
+        FROM MentorInteraction
+        WHERE RollNo = ?
+        ORDER BY InteractionDate DESC
+        LIMIT 5
+    -->
+    <div class="card mb-4">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="brand font-bold text-gray-800 text-base">Recent Interaction Logs</h2>
+        <a href="mentee-logs.html" class="text-blue-600 text-xs font-bold hover:underline">View All →</a>
+      </div>
+
+      <div id="logs-list">
+        <div class="empty-state">
+          <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <p>No interaction logs yet</p>
+          <span>Logs will appear after your first meeting</span>
+        </div>
+      </div>
+
+      <!-- Log row template -->
+      <template id="log-row-template">
+        <div class="log-row">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-gray-800 log-date"></p>
+              <p class="text-xs text-gray-400 log-remarks"></p>
+            </div>
+          </div>
+          <div class="flex flex-col items-end gap-1">
+            <span class="text-xs font-bold px-2.5 py-1 rounded-full log-mentee-badge"></span>
+            <span class="text-xs font-bold px-2.5 py-1 rounded-full log-faculty-badge"></span>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- ── Extracurricular Activities ── -->
+    <!--
+      DATA BINDING:
+      fetchActivities(rollNo) →
+        SELECT RowID, ActivityDate, ActivityDetails, Semester, Verified, VerifyDate
+        FROM ExtracurricularActivity
+        WHERE RollNo = ?
+        ORDER BY ActivityDate DESC
+        LIMIT 4
+    -->
+    <div class="card mb-4">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="brand font-bold text-gray-800 text-base">My Activities</h2>
+        <a href="mentee-activities.html" class="text-blue-600 text-xs font-bold hover:underline">View All →</a>
+      </div>
+
+      <div id="activities-list">
+        <div class="empty-state">
+          <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+          </svg>
+          <p>No activities logged</p>
+          <span>Upload your extracurricular achievements</span>
+        </div>
+      </div>
+
+      <!-- Activity row template -->
+      <template id="activity-row-template">
+        <div class="log-row">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg class="w-4 h-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-gray-800 activity-details"></p>
+              <p class="text-xs text-gray-400 activity-date-sem"></p>
+            </div>
+          </div>
+          <span class="text-xs font-bold px-2.5 py-1 rounded-full activity-badge"></span>
+        </div>
+      </template>
+    </div>
+
+    <div class="h-6"></div>
+  </div>
+</div>
+
+<script>
+  // ─────────────────────────────────────────────
+  //  UTILITY
+  // ─────────────────────────────────────────────
+  const d = new Date();
+  document.getElementById('current-date').textContent =
+    d.toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  function openSidebar() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('overlay').classList.add('show');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+  }
+
+  function getInitials(name) {
+    if (!name) return '--';
+    return name.trim().split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    const dt = new Date(dateStr);
+    return dt.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  }
+
+  function formatDateTime(dateStr) {
+    if (!dateStr) return '—';
+    const dt = new Date(dateStr);
+    return dt.toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+  }
+
+  // ─────────────────────────────────────────────
+  //  SESSION / AUTH
+  //  Replace with your actual auth token / session logic.
+  //  e.g., const rollNo = sessionStorage.getItem('rollNo');
+  //        const token  = sessionStorage.getItem('token');
+  // ─────────────────────────────────────────────
+  const BASE_URL = '/api';   // change to your backend base URL
+  const rollNo   = sessionStorage.getItem('rollNo') || null;
+  const token    = sessionStorage.getItem('token')  || null;
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+
+  // ─────────────────────────────────────────────
+  //  INIT — called on page load
+  // ─────────────────────────────────────────────
+  async function init() {
+    if (!rollNo) {
+      // Uncomment to enforce auth redirect:
+      // window.location.href = 'login.html';
+      return;
+    }
+    await Promise.all([
+      loadStudentProfile(),
+      loadDashboardStats(),
+      loadMentorInfo(),
+      loadUpcomingSessions(),
+      loadRecentLogs(),
+      loadActivities(),
+      loadNotifications()
+    ]);
+  }
+
+  // ─────────────────────────────────────────────
+  //  1. STUDENT PROFILE  (sidebar + topbar)
+  //  GET /api/mentee/profile/:rollNo
+  //  Returns: { studentName, programName, semester, batch, imagepath }
+  // ─────────────────────────────────────────────
+  async function loadStudentProfile() {
+    try {
+      const res  = await fetch(`${BASE_URL}/mentee/profile/${rollNo}`, { headers });
+      const data = await res.json();
+      const name = data.studentName || '';
+      const initials = getInitials(name);
+
+      document.getElementById('sidebar-name').textContent    = name || 'Student';
+      document.getElementById('sidebar-program').textContent = data.programName
+        ? `${data.programName} · Sem ${data.semester}`
+        : '—';
+      document.getElementById('topbar-welcome').textContent  = `Welcome back, ${name.split(' ')[0]}`;
+
+      // Avatar: image or initials
+      if (data.imagepath) {
+        const img = `<img src="${data.imagepath}" alt="${name}" class="w-full h-full object-cover rounded-full">`;
+        document.getElementById('sidebar-avatar').innerHTML = img;
+        document.getElementById('topbar-avatar').innerHTML  = img;
+      } else {
+        document.getElementById('sidebar-avatar').textContent = initials;
+        document.getElementById('topbar-avatar').textContent  = initials;
+      }
+    } catch (e) {
+      console.error('Profile load failed', e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  2. STAT CARDS
+  //  GET /api/mentee/stats/:rollNo
+  //  Returns: { totalInteractions, upcomingSessions, pendingSignoffs, activitiesLogged }
+  // ─────────────────────────────────────────────
+  async function loadDashboardStats() {
+    try {
+      const res  = await fetch(`${BASE_URL}/mentee/stats/${rollNo}`, { headers });
+      const data = await res.json();
+      document.getElementById('stat-total-interactions').textContent = data.totalInteractions ?? '0';
+      document.getElementById('stat-upcoming-sessions').textContent  = data.upcomingSessions  ?? '0';
+      document.getElementById('stat-pending-logs').textContent       = data.pendingSignoffs   ?? '0';
+      document.getElementById('stat-activities').textContent         = data.activitiesLogged  ?? '0';
+    } catch (e) {
+      console.error('Stats load failed', e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  3. MENTOR INFO
+  //  GET /api/mentee/mentor/:rollNo
+  //  Returns: { empName, empNo, profileName, loginEmail, imagepath, lastMeetingDate }
+  // ─────────────────────────────────────────────
+  async function loadMentorInfo() {
+    try {
+      const res  = await fetch(`${BASE_URL}/mentee/mentor/${rollNo}`, { headers });
+      const data = await res.json();
+      if (!data || !data.empName) return;
+
+      const container = document.getElementById('mentor-info-block');
+      const tpl = document.getElementById('mentor-info-template');
+      const clone = tpl.content.cloneNode(true);
+
+      const initials = getInitials(data.empName);
+      clone.querySelector('.mentor-avatar').textContent       = initials;
+      clone.querySelector('.mentor-name').textContent         = data.empName;
+      clone.querySelector('.mentor-dept').textContent         = data.profileName || '';
+      clone.querySelector('.mentor-empno').textContent        = data.empNo ? `Emp No: ${data.empNo}` : '';
+      clone.querySelector('.mentor-email').textContent        = data.loginEmail || '—';
+      clone.querySelector('.mentor-last-meeting').textContent = data.lastMeetingDate
+        ? formatDate(data.lastMeetingDate) : 'Not yet';
+
+      container.innerHTML = '';
+      container.appendChild(clone);
+    } catch (e) {
+      console.error('Mentor info load failed', e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  4. UPCOMING SESSIONS
+  //  GET /api/mentee/sessions/upcoming/:rollNo
+  //  Returns: [{ scheduledDateTime, meetingType, venue, agenda }]
+  // ─────────────────────────────────────────────
+  const SESSION_COLORS = ['bg-blue-600','bg-green-600','bg-yellow-500','bg-purple-600'];
+  const SESSION_BG     = ['bg-blue-50','bg-green-50','bg-yellow-50','bg-purple-50'];
+  const SESSION_TEXT   = ['text-blue-600','text-green-600','text-yellow-600','text-purple-600'];
+
+  async function loadUpcomingSessions() {
+    try {
+      const res  = await fetch(`${BASE_URL}/mentee/sessions/upcoming/${rollNo}`, { headers });
+      const list = await res.json();
+      if (!list || list.length === 0) return;
+
+      const container = document.getElementById('upcoming-sessions-list');
+      container.innerHTML = '';
+      const tpl = document.getElementById('session-item-template');
+
+      list.slice(0,3).forEach((s, i) => {
+        const dt = new Date(s.scheduledDateTime);
+        const clone = tpl.content.cloneNode(true);
+        const ci = i % SESSION_COLORS.length;
+
+        clone.querySelector('.session-bg').classList.add(SESSION_BG[ci]);
+        clone.querySelector('.session-color').classList.add(SESSION_COLORS[ci]);
+        clone.querySelector('.session-month').textContent       = dt.toLocaleString('en-IN',{month:'short'}).toUpperCase();
+        clone.querySelector('.session-day').textContent         = dt.getDate();
+        clone.querySelector('.session-agenda').textContent      = s.agenda || 'Meeting';
+        clone.querySelector('.session-type').textContent        = s.meetingType || '';
+        clone.querySelector('.session-time-venue').textContent  =
+          `${dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})} · ${s.venue || '—'}`;
+        clone.querySelector('.session-time-venue').classList.add(SESSION_TEXT[ci]);
+
+        container.appendChild(clone);
+      });
+    } catch (e) {
+      console.error('Sessions load failed', e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  5. RECENT LOGS
+  //  GET /api/mentee/logs/recent/:rollNo
+  //  Returns: [{ interactionID, interactionDate, academicRemarks, menteeVerified, facultyVerified }]
+  // ─────────────────────────────────────────────
+  async function loadRecentLogs() {
+    try {
+      const res  = await fetch(`${BASE_URL}/mentee/logs/recent/${rollNo}`, { headers });
+      const list = await res.json();
+      if (!list || list.length === 0) return;
+
+      const container = document.getElementById('logs-list');
+      container.innerHTML = '';
+      const tpl = document.getElementById('log-row-template');
+
+      list.slice(0,5).forEach(log => {
+        const clone = tpl.content.cloneNode(true);
+        clone.querySelector('.log-date').textContent    = formatDate(log.interactionDate);
+        clone.querySelector('.log-remarks').textContent = log.academicRemarks
+          ? log.academicRemarks.substring(0,60) + (log.academicRemarks.length > 60 ? '...' : '')
+          : 'No remarks';
+
+        const mb = clone.querySelector('.log-mentee-badge');
+        mb.textContent = log.menteeVerified ? 'You ✓' : 'Awaiting Your Sign-off';
+        mb.className += log.menteeVerified
+          ? ' badge-verified text-xs font-bold px-2.5 py-1 rounded-full'
+          : ' badge-pending text-xs font-bold px-2.5 py-1 rounded-full';
+
+        const fb = clone.querySelector('.log-faculty-badge');
+        fb.textContent = log.facultyVerified ? 'Mentor ✓' : 'Mentor Pending';
+        fb.className += log.facultyVerified
+          ? ' badge-verified text-xs font-bold px-2.5 py-1 rounded-full'
+          : ' badge-unverified text-xs font-bold px-2.5 py-1 rounded-full';
+
+        container.appendChild(clone);
+      });
+    } catch (e) {
+      console.error('Logs load failed', e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  6. ACTIVITIES
+  //  GET /api/mentee/activities/:rollNo
+  //  Returns: [{ rowID, activityDate, activityDetails, semester, verified }]
+  // ─────────────────────────────────────────────
+  async function loadActivities() {
+    try {
+      const res  = await fetch(`${BASE_URL}/mentee/activities/${rollNo}`, { headers });
+      const list = await res.json();
+      if (!list || list.length === 0) return;
+
+      const container = document.getElementById('activities-list');
+      container.innerHTML = '';
+      const tpl = document.getElementById('activity-row-template');
+
+      list.slice(0,4).forEach(act => {
+        const clone = tpl.content.cloneNode(true);
+        clone.querySelector('.activity-details').textContent  = act.activityDetails || 'Activity';
+        clone.querySelector('.activity-date-sem').textContent =
+          `${formatDate(act.activityDate)} · Sem ${act.semester || '—'}`;
+
+        const badge = clone.querySelector('.activity-badge');
+        badge.textContent = act.verified ? 'Verified' : 'Pending';
+        badge.className += act.verified
+          ? ' badge-verified text-xs font-bold px-2.5 py-1 rounded-full'
+          : ' badge-pending text-xs font-bold px-2.5 py-1 rounded-full';
+
+        container.appendChild(clone);
+      });
+    } catch (e) {
+      console.error('Activities load failed', e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  7. NOTIFICATIONS
+  //  GET /api/notifications/:loginId
+  //  Returns: [{ notificationID, title, isRead }]
+  // ─────────────────────────────────────────────
+  async function loadNotifications() {
+    try {
+      const loginId = sessionStorage.getItem('loginId');
+      if (!loginId) return;
+      const res  = await fetch(`${BASE_URL}/notifications/${loginId}`, { headers });
+      const list = await res.json();
+      const unread = list.filter(n => !n.isRead).length;
+      if (unread > 0) {
+        document.getElementById('notif-dot').classList.remove('hidden');
+      }
+    } catch (e) {
+      console.error('Notifications load failed', e);
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

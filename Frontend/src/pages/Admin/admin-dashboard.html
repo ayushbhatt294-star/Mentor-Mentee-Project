@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Management Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Lato:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-family: 'Lato', sans-serif; background-color: #f1f5f9; }
+    h1,h2,h3,.brand { font-family: 'Nunito', sans-serif; }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed; top: 0; left: 0; height: 100vh; width: 230px;
+      background: linear-gradient(180deg, #1e3a5f 0%, #1a3557 100%);
+      z-index: 40; transition: transform 0.3s ease;
+      display: flex; flex-direction: column;
+    }
+    .sidebar-link {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 20px; border-radius: 10px; margin: 2px 10px;
+      color: #c9d9ee; font-size: 0.92rem; font-weight: 600;
+      cursor: pointer; transition: all 0.18s ease; text-decoration: none;
+    }
+    .sidebar-link:hover { background: rgba(255,255,255,0.1); color: white; }
+    .sidebar-link.active { background: rgba(255,255,255,0.15); color: white; }
+    .sidebar-link .icon { width: 20px; height: 20px; flex-shrink: 0; }
+
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45); z-index: 35;
+    }
+    .overlay.show { display: block; }
+
+    .main { margin-left: 230px; min-height: 100vh; }
+
+    .topbar {
+      background: white; border-bottom: 1px solid #e2e8f0;
+      padding: 14px 24px; display: flex; align-items: center;
+      justify-content: space-between; position: sticky; top: 0; z-index: 30;
+    }
+
+    .stat-card {
+      background: white; border-radius: 14px;
+      padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+
+    .card { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+
+    .badge-active   { background:#dcfce7; color:#15803d; }
+    .badge-inactive { background:#fee2e2; color:#b91c1c; }
+    .badge-pending  { background:#fef9c3; color:#a16207; }
+
+    .fade-up { opacity:0; transform:translateY(16px); animation:fadeUp 0.4s ease forwards; }
+    @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+    .fade-up:nth-child(1) { animation-delay:0.05s; }
+    .fade-up:nth-child(2) { animation-delay:0.10s; }
+    .fade-up:nth-child(3) { animation-delay:0.15s; }
+    .fade-up:nth-child(4) { animation-delay:0.20s; }
+    .fade-up:nth-child(5) { animation-delay:0.25s; }
+
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; }
+      .topbar { padding: 12px 16px; }
+    }
+
+    .progress-bar { height: 8px; border-radius: 99px; background: #e2e8f0; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #2563eb, #38bdf8); transition: width 0.8s ease; }
+
+    .notif-dot { width:8px; height:8px; border-radius:50%; background:#ef4444; display:inline-block; }
+
+    .data-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 0; border-bottom:1px solid #f1f5f9;
+    }
+    .data-row:last-child { border-bottom:none; padding-bottom:0; }
+
+    .avatar {
+      width:38px; height:38px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-weight:800; font-size:0.85rem; font-family:'Nunito',sans-serif;
+      flex-shrink:0;
+    }
+
+    /* Chart bar */
+    .chart-bar-wrap { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; }
+    .chart-bar-col  { width:100%; display:flex; flex-direction:column; justify-content:flex-end; height:100px; }
+    .chart-bar      { border-radius:6px 6px 0 0; background:linear-gradient(180deg,#3b82f6,#1d4ed8); min-height:4px; transition:height 0.8s ease; }
+    .chart-label    { font-size:0.65rem; color:#94a3b8; font-weight:700; text-align:center; }
+
+    .empty-state { text-align:center; padding:32px 16px; color:#94a3b8; }
+    .empty-state svg { margin:0 auto 12px; opacity:0.4; }
+    .empty-state p { font-size:0.875rem; font-weight:600; }
+    .empty-state span { font-size:0.75rem; }
+
+    /* Tab buttons */
+    .tab-btn { padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:700; cursor:pointer; transition:all 0.15s ease; border:none; background:transparent; color:#64748b; }
+    .tab-btn.active { background:#2563eb; color:white; }
+    .tab-btn:hover:not(.active) { background:#f1f5f9; }
+  </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- ===== SIDEBAR ===== -->
+<aside class="sidebar" id="sidebar">
+
+  <!-- Brand -->
+  <div class="px-5 py-5 border-b border-white border-opacity-10">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 bg-white bg-opacity-20 rounded-lg flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422A12.083 12.083 0 0121 21H3a12.083 12.083 0 012.84-10.422L12 14z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="brand text-white font-extrabold text-sm leading-tight">Admin Portal</p>
+        <p class="text-blue-300 text-xs">Management</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Info — populated via JS -->
+  <div class="px-5 py-4 border-b border-white border-opacity-10">
+    <div class="flex items-center gap-3">
+      <div class="avatar bg-blue-400 text-white" id="sidebar-avatar" style="width:42px;height:42px;font-size:1rem;">--</div>
+      <div>
+        <p class="text-white font-bold text-sm leading-tight" id="sidebar-name">Loading...</p>
+        <p class="text-blue-300 text-xs">Administrator</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nav Links -->
+  <nav class="flex-1 py-4 overflow-y-auto">
+    <p class="text-blue-400 text-xs font-bold uppercase px-5 mb-2 tracking-wider">Management</p>
+
+    <a href="admin-dashboard.html" class="sidebar-link active">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+      </svg>
+      Dashboard
+    </a>
+
+    <a href="admin-students.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-4a4 4 0 100-8 4 4 0 000 8z"/>
+      </svg>
+      Students
+    </a>
+
+    <a href="admin-mentors.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+      </svg>
+      Mentors (Faculty)
+    </a>
+
+    <a href="admin-assignments.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+      </svg>
+      Assignments
+    </a>
+
+    <a href="admin-interactions.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 16c0 1.105-3.582 2-8 2s-8-.895-8-2V8c0-1.105 3.582-2 8-2s8 .895 8 2v8z"/>
+      </svg>
+      All Interactions
+    </a>
+
+    <!-- <a href="admin-programs.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+      </svg>
+      Programs &amp; Units
+    </a> -->
+
+    <a href="admin-reports.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      Reports
+    </a>
+
+    <div class="h-px bg-white bg-opacity-10 mx-5 my-3"></div>
+
+    <a href="admin-help-tickets.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+      </svg>
+      Support Tickets
+    </a>
+
+    <a href="login.html" class="sidebar-link" style="color:#f87171;">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/>
+      </svg>
+      Logout
+    </a>
+  </nav>
+</aside>
+
+<!-- ===== MAIN CONTENT ===== -->
+<div class="main">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="flex items-center gap-3">
+      <button onclick="openSidebar()" class="md:hidden text-gray-500 hover:text-blue-700 transition-colors">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      <div>
+        <h1 class="brand text-lg font-extrabold text-gray-800 leading-tight">Management Dashboard</h1>
+        <p class="text-xs text-gray-400 hidden sm:block" id="topbar-welcome">Overview of the Mentor–Mentee Program</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="text-xs text-gray-400 hidden sm:block" id="current-date"></span>
+      <button class="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
+        <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        <span class="notif-dot absolute top-1.5 right-1.5 hidden" id="notif-dot"></span>
+      </button>
+      <div class="avatar bg-blue-700 text-white" id="topbar-avatar" style="width:36px;height:36px;font-size:0.8rem;">--</div>
+    </div>
+  </header>
+
+  <!-- Page Content -->
+  <div class="p-4 md:p-6 max-w-6xl mx-auto">
+
+    <!-- ── Stat Cards ── -->
+    <!--
+      DATA BINDING:
+      GET /api/admin/stats
+      Returns: {
+        totalStudents, totalMentors, totalPrograms,
+        totalInteractionsThisMonth, unassignedStudents, openSupportTickets
+      }
+    -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+
+      <div class="stat-card fade-up">
+        <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mb-3">
+          <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-4a4 4 0 100-8 4 4 0 000 8z"/>
+          </svg>
+        </div>
+        <p class="text-2xl font-extrabold text-gray-800 brand" id="stat-total-students">—</p>
+        <p class="text-xs text-gray-500 font-semibold mt-0.5">Total Students</p>
+      </div>
+
+      <div class="stat-card fade-up">
+        <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mb-3">
+          <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+          </svg>
+        </div>
+        <p class="text-2xl font-extrabold text-gray-800 brand" id="stat-total-mentors">—</p>
+        <p class="text-xs text-gray-500 font-semibold mt-0.5">Total Mentors</p>
+      </div>
+
+      <div class="stat-card fade-up">
+        <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center mb-3">
+          <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 16c0 1.105-3.582 2-8 2s-8-.895-8-2V8c0-1.105 3.582-2 8-2s8 .895 8 2v8z"/>
+          </svg>
+        </div>
+        <p class="text-2xl font-extrabold text-gray-800 brand" id="stat-interactions-month">—</p>
+        <p class="text-xs text-gray-500 font-semibold mt-0.5">Interactions (Month)</p>
+      </div>
+
+      <div class="stat-card fade-up">
+        <div class="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center mb-3">
+          <svg class="w-5 h-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+          </svg>
+        </div>
+        <p class="text-2xl font-extrabold text-gray-800 brand" id="stat-unassigned">—</p>
+        <p class="text-xs text-gray-500 font-semibold mt-0.5">Unassigned Students</p>
+      </div>
+
+      <div class="stat-card fade-up">
+        <div class="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center mb-3">
+          <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536"/>
+          </svg>
+        </div>
+        <p class="text-2xl font-extrabold text-gray-800 brand" id="stat-open-tickets">—</p>
+        <p class="text-xs text-gray-500 font-semibold mt-0.5">Open Tickets</p>
+      </div>
+
+    </div>
+
+    <!-- ── Interactions Chart + Program Breakdown ── -->
+    <!--
+      DATA BINDING (chart):
+      GET /api/admin/interactions-monthly
+      Returns: [{ month: 'Jan', count: 45 }, ...] (last 6 months)
+
+      DATA BINDING (program breakdown):
+      GET /api/admin/program-breakdown
+      Returns: [{ programName, studentCount, mentorCount }]
+    -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+
+      <!-- Interactions Bar Chart -->
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="brand font-bold text-gray-800 text-base">Monthly Interactions</h2>
+          <span class="text-xs text-gray-400" id="chart-subtitle">Last 6 months</span>
+        </div>
+
+        <!-- Bar chart rendered by JS -->
+        <div id="interactions-chart" class="flex items-end gap-1 h-28 px-1">
+          <!-- JS populates chart-bar-wrap divs here -->
+          <div class="empty-state w-full py-4">
+            <p>Loading chart...</p>
+          </div>
+        </div>
+        <div class="flex gap-1 mt-1 px-1" id="chart-labels"></div>
+      </div>
+
+      <!-- Program Breakdown -->
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="brand font-bold text-gray-800 text-base">Programs Overview</h2>
+          <a href="admin-programs.html" class="text-blue-600 text-xs font-bold hover:underline">Manage →</a>
+        </div>
+
+        <div id="program-list">
+          <div class="empty-state">
+            <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+            <p>No programs found</p>
+          </div>
+        </div>
+
+        <!-- Program row template -->
+        <template id="program-row-template">
+          <div class="mb-3 last:mb-0">
+            <div class="flex justify-between mb-1">
+              <span class="text-sm font-semibold text-gray-700 prog-name"></span>
+              <span class="text-xs text-gray-500 prog-meta"></span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill prog-bar"></div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+    </div>
+
+    <!-- ── Students + Mentors Quick Tables ── -->
+    <!--
+      DATA BINDING (students):
+      GET /api/admin/students/recent?limit=5
+      Returns: [{ rollNo, studentName, programName, semester, batch, isActive }]
+
+      DATA BINDING (mentors):
+      GET /api/admin/mentors/recent?limit=5
+      Returns: [{ facultyID, empName, empNo, menteeCount, profileName }]
+    -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+
+      <!-- Recent Students -->
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex gap-2">
+            <h2 class="brand font-bold text-gray-800 text-base">Students</h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <a href="admin-students.html?action=add" class="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors">+ Add</a>
+            <a href="admin-students.html" class="text-blue-600 text-xs font-bold hover:underline">View All →</a>
+          </div>
+        </div>
+
+        <div id="students-list">
+          <div class="empty-state">
+            <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-4a4 4 0 100-8 4 4 0 000 8z"/>
+            </svg>
+            <p>No students found</p>
+          </div>
+        </div>
+
+        <!-- Student row template -->
+        <template id="student-row-template">
+          <div class="data-row">
+            <div class="flex items-center gap-3">
+              <div class="avatar bg-blue-200 text-blue-700 stu-avatar"></div>
+              <div>
+                <p class="text-sm font-bold text-gray-800 stu-name"></p>
+                <p class="text-xs text-gray-400 stu-meta"></p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full stu-badge"></span>
+              <a class="stu-edit text-blue-500 hover:text-blue-700 transition-colors" href="#">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Mentors -->
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="brand font-bold text-gray-800 text-base">Mentors (Faculty)</h2>
+          <div class="flex items-center gap-2">
+            <a href="admin-mentors.html?action=add" class="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors">+ Add</a>
+            <a href="admin-mentors.html" class="text-blue-600 text-xs font-bold hover:underline">View All →</a>
+          </div>
+        </div>
+
+        <div id="mentors-list">
+          <div class="empty-state">
+            <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+            <p>No mentors found</p>
+          </div>
+        </div>
+
+        <!-- Mentor row template -->
+        <template id="mentor-row-template">
+          <div class="data-row">
+            <div class="flex items-center gap-3">
+              <div class="avatar bg-green-200 text-green-700 mtr-avatar"></div>
+              <div>
+                <p class="text-sm font-bold text-gray-800 mtr-name"></p>
+                <p class="text-xs text-gray-400 mtr-meta"></p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 mtr-mentees"></span>
+              <a class="mtr-edit text-blue-500 hover:text-blue-700 transition-colors" href="#">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </template>
+      </div>
+
+    </div>
+
+    <!-- ── Unverified Activity Approvals + Recent Interactions ── -->
+    <!--
+      DATA BINDING (approvals):
+      GET /api/admin/activities/pending?limit=5
+      Returns: [{ rowID, rollNo, studentName, activityDetails, activityDate, semester }]
+
+      DATA BINDING (recent interactions):
+      GET /api/admin/interactions/recent?limit=5
+      Returns: [{ interactionID, studentName, facultyName, interactionDate,
+                  menteeVerified, facultyVerified }]
+    -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+
+      <!-- Pending Activity Approvals -->
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="brand font-bold text-gray-800 text-base">Pending Approvals</h2>
+          <span class="bg-red-100 text-red-600 text-xs font-bold px-2.5 py-1 rounded-full" id="approvals-count">—</span>
+        </div>
+
+        <div id="approvals-list">
+          <div class="empty-state">
+            <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p>All caught up!</p>
+            <span>No pending activity approvals</span>
+          </div>
+        </div>
+
+        <!-- Approval row template -->
+        <template id="approval-row-template">
+          <div class="data-row">
+            <div>
+              <p class="text-sm font-bold text-gray-800 appr-name"></p>
+              <p class="text-xs text-gray-400 appr-details"></p>
+              <p class="text-xs text-gray-400 appr-date"></p>
+            </div>
+            <div class="flex gap-2 flex-shrink-0">
+              <button class="appr-approve bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-lg hover:bg-green-200 transition-colors">Approve</button>
+              <button class="appr-reject bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-lg hover:bg-red-200 transition-colors">Reject</button>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Recent Interactions -->
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="brand font-bold text-gray-800 text-base">Recent Interactions</h2>
+          <a href="admin-interactions.html" class="text-blue-600 text-xs font-bold hover:underline">View All →</a>
+        </div>
+
+        <div id="recent-interactions-list">
+          <div class="empty-state">
+            <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 16c0 1.105-3.582 2-8 2s-8-.895-8-2V8c0-1.105 3.582-2 8-2s8 .895 8 2v8z"/>
+            </svg>
+            <p>No interactions recorded</p>
+          </div>
+        </div>
+
+        <!-- Interaction row template -->
+        <template id="interaction-row-template">
+          <div class="data-row">
+            <div>
+              <p class="text-sm font-bold text-gray-800 int-names"></p>
+              <p class="text-xs text-gray-400 int-date"></p>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+              <span class="text-xs font-bold px-2 py-0.5 rounded-full int-mentee-badge"></span>
+              <span class="text-xs font-bold px-2 py-0.5 rounded-full int-faculty-badge"></span>
+            </div>
+          </div>
+        </template>
+      </div>
+
+    </div>
+
+    <!-- ── Unassigned Students Alert ── -->
+    <!--
+      DATA BINDING:
+      GET /api/admin/students/unassigned
+      Returns: [{ rollNo, studentName, programName, semester, batch }]
+      Only shown when list.length > 0
+    -->
+    <div id="unassigned-alert" class="hidden card mb-4 border-l-4 border-yellow-400">
+      <div class="flex items-start gap-3">
+        <div class="w-9 h-9 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+          <svg class="w-5 h-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <div class="flex-1">
+          <p class="font-bold text-gray-800 text-sm">Unassigned Students Detected</p>
+          <p class="text-xs text-gray-500 mt-0.5" id="unassigned-count-text"></p>
+          <div id="unassigned-names" class="flex flex-wrap gap-1 mt-2"></div>
+        </div>
+        <a href="admin-assignments.html" class="bg-yellow-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-yellow-600 transition-colors flex-shrink-0">Assign Now</a>
+      </div>
+    </div>
+
+    <div class="h-6"></div>
+  </div>
+</div>
+
+<script>
+  // ─────────────────────────────────────────────
+  //  UTILITY
+  // ─────────────────────────────────────────────
+  const d = new Date();
+  document.getElementById('current-date').textContent =
+    d.toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  function openSidebar() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('overlay').classList.add('show');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+  }
+
+  function getInitials(name) {
+    if (!name) return '--';
+    return name.trim().split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  }
+
+  // ─────────────────────────────────────────────
+  //  SESSION / AUTH
+  //  Replace with your actual session/token logic.
+  // ─────────────────────────────────────────────
+  const BASE_URL = '/api';
+  const token    = sessionStorage.getItem('token') || null;
+  const adminId  = sessionStorage.getItem('adminId') || null;
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+
+  // ─────────────────────────────────────────────
+  //  INIT
+  // ─────────────────────────────────────────────
+  async function init() {
+    await Promise.all([
+      loadAdminProfile(),
+      loadStats(),
+      loadInteractionsChart(),
+      loadProgramBreakdown(),
+      loadRecentStudents(),
+      loadRecentMentors(),
+      loadPendingApprovals(),
+      loadRecentInteractions(),
+      loadUnassignedStudents()
+    ]);
+  }
+
+  // ─────────────────────────────────────────────
+  //  1. ADMIN PROFILE  (sidebar)
+  //  GET /api/admin/profile/:adminId
+  //  Returns: { name, imagepath }
+  // ─────────────────────────────────────────────
+  async function loadAdminProfile() {
+    try {
+      if (!adminId) return;
+      const res  = await fetch(`${BASE_URL}/admin/profile/${adminId}`, { headers });
+      const data = await res.json();
+      const name = data.name || 'Admin';
+      document.getElementById('sidebar-name').textContent = name;
+      const initials = getInitials(name);
+      document.getElementById('sidebar-avatar').textContent = initials;
+      document.getElementById('topbar-avatar').textContent  = initials;
+    } catch (e) {
+      console.error('Admin profile load failed', e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  2. OVERVIEW STATS
+  //  GET /api/admin/stats
+  // ─────────────────────────────────────────────
+  async function loadStats() {
+    try {
+      const res  = await fetch(`${BASE_URL}/admin/stats`, { headers });
+      const data = await res.json();
+      document.getElementById('stat-total-students').textContent    = data.totalStudents          ?? '0';
+      document.getElementById('stat-total-mentors').textContent     = data.totalMentors           ?? '0';
+      document.getElementById('stat-interactions-month').textContent= data.totalInteractionsThisMonth ?? '0';
+      document.getElementById('stat-unassigned').textContent        = data.unassignedStudents     ?? '0';
+      document.getElementById('stat-open-tickets').textContent      = data.openSupportTickets     ?? '0';
+    } catch (e) {
+      console.error('Stats load failed', e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  3. INTERACTIONS CHART  (last 6 months)
+  //  GET /api/admin/interactions-monthly
+  //  Returns: [{ month: 'Jan', count: 45 }]
+  // ─────────────────────────────────────────────
+  async function loadInteractionsChart() {
+    try {
+      const res  = await fetch(`${BASE_URL}/admin/interactions-monthly`, { headers });
+      const list = await res.json();
+      if (!list || list.length === 0) return;
+
+      const max = Math.max(...list.map(i => i.count), 1);
+      const chartEl  = document.getElementById('interactions-chart');
+      const labelsEl = document.getElementById('chart-labels');
+      chartEl.innerHTML  = '';
+      labelsEl.innerHTML = '';
+
+      list.forEach((item, idx) => {
+        const pct = Math.round((item.count / max) * 100);
+
+        const wrap = document.createElement('div');
+        wrap.className = 'chart-bar-wrap';
+
+        const col  = document.createElement('div');
+        col.className = 'chart-bar-col';
+
+        const bar  = document.createElement('div');
+        bar.className = 'chart-bar';
+        bar.style.height = '0%';
+        // Animate on next tick
+        setTimeout(() => { bar.style.height = pct + '%'; }, 50 + idx * 80);
+
+        const valLabel = document.createElement('div');
+        valLabel.className = 'text-center text-xs font-bold text-blue-600 mb-1';
+        valLabel.textContent = item.count;
+
+        col.appendChild(bar);
+        wrap.appendChild(valLabel);
+        wrap.appendChild(col);
+        chartEl.appendChild(wrap);
+
+        const lbl = document.createElement('div');
+        lbl.className = 'chart-label flex-1 text-center';
+        lbl.textContent = item.month;
+        labelsEl.appendChild(lbl);
+      });
+    } catch (e) {
+      console.error('Chart load failed', e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  4. PROGRAM BREAKDOWN
+  //  GET /api/admin/program-breakdown
+  //  Returns: [{ programName, studentCount, mentorCount }]
+  // ─────────────────────────────────────────────
+  async function loadProgramBreakdown() {
+    try {
+      const res  = await fetch(`${BASE_URL}/admin/program-breakdown`, { headers });
+      const list = await res.json();
+      if (!list || list.length === 0) return;
+
+      const container = document.getElementById('program-list');
+      container.innerHTML = '';
+      const tpl = document.getElementById('program-row-template');
+      const maxStudents = Math.max(...list.map(p => p.studentCount), 1);
+
+      list.forEach((prog, idx) => {
+        const clone = tpl.content.cloneNode(true);
+        const pct   = Math.round((prog.studentCount / maxStudents) * 100);
+        clone.querySelector('.prog-name').textContent = prog.programName;
+        clone.querySelector('.prog-meta').textContent =
+          `${prog.studentCount} students · ${prog.mentorCount} mentors`;
+        const bar = clone.querySelector('.prog-bar');
+        bar.style.width = '0%';
+        setTimeout(() => { bar.style.width = pct + '%'; }, 100 + idx * 100);
+        container.appendChild(clone);
+      });
+    } catch (e) {
+      console.error('Program breakdown load failed', e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  5. RECENT STUDENTS
+  //  GET /api/admin/students/recent?limit=5
+  // ─────────────────────────────────────────────
+  async function loadRecentStudents() {
+    try {
+      const res  = await fetch(`${BASE_URL}/admin/students/recent?limit=5`, { headers });
+      const list = await res.json();
+      if (!list || list.length === 0) return;
+
+      const container = document.getElementById('students-list');
+      container.innerHTML = '';
+      const tpl = document.getElementById('student-row-template');
+
+      list.forEach(stu => {
+        const clone = tpl.content.cloneNode(true);
+        clone.querySelector('.stu-avatar').textContent = getInitials(stu.studentName);
+        clone.querySelector('.stu-name').textContent   = stu.studentName;
+        clone.querySelector('.stu-meta').textContent   =
+          `${stu.rollNo} · ${stu.programName || '—'} · Sem ${stu.semester}`;
+
+        const badge = clone.querySelector('.stu-badge');
+        badge.textContent = stu.isActive ? 'Active' : 'Inactive';
+        badge.className  += stu.isActive ? ' badge-active' : ' badge-inactive';
+
+        clone.querySelector('.stu-edit').href =
+          `admin-students.html?action=edit&rollNo=${stu.rollNo}`;
+        container.appendChild(clone);
+      });
+    } catch (e) {
+      console.error('Students load failed', e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  6. RECENT MENTORS
+  //  GET /api/admin/mentors/recent?limit=5
+  // ─────────────────────────────────────────────
+  async function loadRecentMentors() {
+    try {
+      const res  = await fetch(`${BASE_URL}/admin/mentors/recent?limit=5`, { headers });
+      const list = await res.json();
+      if (!list || list.length === 0) return;
+
+      const container = document.getElementById('mentors-list');
+      container.innerHTML = '';
+      const tpl = document.getElementById('mentor-row-template');
+
+      list.forEach(mtr => {
+        const clone = tpl.content.cloneNode(true);
+        clone.querySelector('.mtr-avatar').textContent  = getInitials(mtr.empName);
+        clone.querySelector('.mtr-name').textContent    = mtr.empName;
+        clone.querySelector('.mtr-meta').textContent    =
+          `Emp: ${mtr.empNo} · ${mtr.profileName || '—'}`;
+        clone.querySelector('.mtr-mentees').textContent =
+          `${mtr.menteeCount ?? 0} mentees`;
+        clone.querySelector('.mtr-edit').href =
+          `admin-mentors.html?action=edit&id=${mtr.facultyID}`;
+        container.appendChild(clone);
+      });
+    } catch (e) {
+      console.error('Mentors load failed', e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  7. PENDING ACTIVITY APPROVALS
+  //  GET /api/admin/activities/pending?limit=5
+  // ─────────────────────────────────────────────
+  async function loadPendingApprovals() {
+    try {
+      const res  = await fetch(`${BASE_URL}/admin/activities/pending?limit=5`, { headers });
+      const list = await res.json();
+      document.getElementById('approvals-count').textContent = list.length ?? '0';
+      if (!list || list.length === 0) return;
+
+      const container = document.getElementById('approvals-list');
+      container.innerHTML = '';
+      const tpl = document.getElementById('approval-row-template');
+
+      list.forEach(item => {
+        const clone = tpl.content.cloneNode(true);
+        clone.querySelector('.appr-name').textContent    = item.studentName || item.rollNo;
+        clone.querySelector('.appr-details').textContent =
+          (item.activityDetails || '').substring(0,50);
+        clone.querySelector('.appr-date').textContent    =
+          `${formatDate(item.activityDate)} · Sem ${item.semester}`;
+
+        clone.querySelector('.appr-approve').addEventListener('click', () =>
+          approveActivity(item.rowID, true));
+        clone.querySelector('.appr-reject').addEventListener('click', () =>
+          approveActivity(item.rowID, false));
+
+        container.appendChild(clone);
+      });
+    } catch (e) {
+      console.error('Approvals load failed', e);
+    }
+  }
+
+  async function approveActivity(rowID, approve) {
+    // PUT /api/admin/activities/:rowID/verify
+    // Body: { verified: true/false }
+    try {
+      await fetch(`${BASE_URL}/admin/activities/${rowID}/verify`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ verified: approve })
+      });
+      await loadPendingApprovals(); // Refresh
+      await loadStats();
+    } catch (e) {
+      console.error('Approve/reject failed', e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  8. RECENT INTERACTIONS
+  //  GET /api/admin/interactions/recent?limit=5
+  // ─────────────────────────────────────────────
+  async function loadRecentInteractions() {
+    try {
+      const res  = await fetch(`${BASE_URL}/admin/interactions/recent?limit=5`, { headers });
+      const list = await res.json();
+      if (!list || list.length === 0) return;
+
+      const container = document.getElementById('recent-interactions-list');
+      container.innerHTML = '';
+      const tpl = document.getElementById('interaction-row-template');
+
+      list.forEach(item => {
+        const clone = tpl.content.cloneNode(true);
+        clone.querySelector('.int-names').textContent =
+          `${item.studentName} ↔ ${item.facultyName}`;
+        clone.querySelector('.int-date').textContent  = formatDate(item.interactionDate);
+
+        const mb = clone.querySelector('.int-mentee-badge');
+        mb.textContent = item.menteeVerified ? 'Student ✓' : 'Student ✗';
+        mb.className  += item.menteeVerified
+          ? ' badge-active' : ' badge-inactive';
+
+        const fb = clone.querySelector('.int-faculty-badge');
+        fb.textContent = item.facultyVerified ? 'Mentor ✓' : 'Mentor ✗';
+        fb.className  += item.facultyVerified
+          ? ' badge-active' : ' badge-pending';
+
+        container.appendChild(clone);
+      });
+    } catch (e) {
+      console.error('Interactions load failed', e);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  9. UNASSIGNED STUDENTS ALERT
+  //  GET /api/admin/students/unassigned
+  // ─────────────────────────────────────────────
+  async function loadUnassignedStudents() {
+    try {
+      const res  = await fetch(`${BASE_URL}/admin/students/unassigned`, { headers });
+      const list = await res.json();
+      if (!list || list.length === 0) return;
+
+      document.getElementById('unassigned-alert').classList.remove('hidden');
+      document.getElementById('unassigned-count-text').textContent =
+        `${list.length} student${list.length > 1 ? 's' : ''} have not been assigned a mentor.`;
+
+      const namesContainer = document.getElementById('unassigned-names');
+      list.slice(0,6).forEach(s => {
+        const chip = document.createElement('span');
+        chip.className = 'text-xs bg-yellow-100 text-yellow-800 font-semibold px-2 py-0.5 rounded-full';
+        chip.textContent = s.studentName || s.rollNo;
+        namesContainer.appendChild(chip);
+      });
+      if (list.length > 6) {
+        const more = document.createElement('span');
+        more.className = 'text-xs text-gray-400 font-semibold';
+        more.textContent = `+${list.length - 6} more`;
+        namesContainer.appendChild(more);
+      }
+    } catch (e) {
+      console.error('Unassigned students load failed', e);
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

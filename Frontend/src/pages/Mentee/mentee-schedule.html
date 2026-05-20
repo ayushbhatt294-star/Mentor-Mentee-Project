@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Schedule & Reminders – Mentee Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Lato:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-family: 'Lato', sans-serif; background-color: #f1f5f9; }
+    h1,h2,h3,.brand { font-family: 'Nunito', sans-serif; }
+    .sidebar {
+      position: fixed; top: 0; left: 0; height: 100vh; width: 230px;
+      background: linear-gradient(180deg, #1e3a5f 0%, #1a3557 100%);
+      z-index: 40; transition: transform 0.3s ease; display: flex; flex-direction: column;
+    }
+    .sidebar-link {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 20px; border-radius: 10px; margin: 2px 10px;
+      color: #c9d9ee; font-size: 0.92rem; font-weight: 600;
+      cursor: pointer; transition: all 0.18s ease; text-decoration: none;
+    }
+    .sidebar-link:hover { background: rgba(255,255,255,0.1); color: white; }
+    .sidebar-link.active { background: rgba(255,255,255,0.15); color: white; }
+    .sidebar-link .icon { width: 20px; height: 20px; flex-shrink: 0; }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 35; }
+    .overlay.show { display: block; }
+    .main { margin-left: 230px; min-height: 100vh; }
+    .topbar {
+      background: white; border-bottom: 1px solid #e2e8f0;
+      padding: 14px 24px; display: flex; align-items: center;
+      justify-content: space-between; position: sticky; top: 0; z-index: 30;
+    }
+    .card { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+    .avatar { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.85rem; font-family:'Nunito',sans-serif; flex-shrink:0; }
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; }
+    }
+    .fade-up { opacity:0; transform:translateY(12px); animation: fadeUp 0.35s ease forwards; }
+    @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+    .empty-state { text-align:center; padding:48px 16px; color:#94a3b8; }
+    .empty-state svg { margin:0 auto 12px; opacity:0.35; }
+    .empty-state p { font-size:0.9rem; font-weight:700; font-family:'Nunito',sans-serif; }
+    .empty-state span { font-size:0.75rem; }
+
+    /* Calendar strip */
+    .cal-day {
+      flex: 0 0 56px; height: 72px; border-radius: 12px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.18s ease; border: 2px solid transparent;
+    }
+    .cal-day:hover { background: #f8fafc; }
+    .cal-day.today { background: #1e3a5f; color: white; }
+    .cal-day.today .cal-day-num { color: white; }
+    .cal-day.today .cal-day-name { color: #93c5fd; }
+    .cal-day.has-event::after {
+      content: ''; display: block; width: 6px; height: 6px;
+      border-radius: 50%; background: #3b82f6; margin-top: 3px;
+    }
+    .cal-day.today.has-event::after { background: white; }
+    .cal-day.selected { border-color: #3b82f6; background: #eff6ff; }
+    .cal-day-name { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.05em; }
+    .cal-day-num  { font-size: 1.1rem; font-weight: 800; font-family: 'Nunito', sans-serif; color: #1e293b; margin-top: 2px; }
+
+    /* Session card */
+    .session-card {
+      border-left: 4px solid; border-radius: 0 12px 12px 0;
+      padding: 14px 16px; margin-bottom: 10px;
+      background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      transition: transform 0.15s ease;
+    }
+    .session-card:hover { transform: translateX(3px); }
+    .session-card:last-child { margin-bottom: 0; }
+
+    /* Reminder card */
+    .reminder-card {
+      display: flex; align-items: start; gap-3; gap: 12px;
+      padding: 12px 14px; border-radius: 12px; margin-bottom: 8px;
+      border: 1px solid #e2e8f0; transition: box-shadow 0.15s ease;
+    }
+    .reminder-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.07); }
+
+    /* Status pills */
+    .pill-scheduled  { background:#dbeafe; color:#1d4ed8; }
+    .pill-completed  { background:#dcfce7; color:#15803d; }
+    .pill-cancelled  { background:#fee2e2; color:#b91c1c; }
+    .pill-rescheduled{ background:#fef9c3; color:#a16207; }
+
+    .view-toggle { display:flex; gap:2px; background:#f1f5f9; border-radius:10px; padding:3px; }
+    .view-btn { padding:6px 14px; border-radius:8px; font-size:0.8rem; font-weight:700; cursor:pointer; transition:all 0.15s ease; font-family:'Nunito',sans-serif; }
+    .view-btn.active { background:white; color:#1e3a5f; box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+    .view-btn:not(.active) { color:#64748b; }
+
+    .tab-content { display:none; }
+    .tab-content.active { display:block; }
+  </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="px-5 py-5 border-b border-white border-opacity-10">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 bg-white bg-opacity-20 rounded-lg flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422A12.083 12.083 0 0121 21H3a12.083 12.083 0 012.84-10.422L12 14z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="brand text-white font-extrabold text-sm leading-tight">Mentee Portal</p>
+        <p class="text-blue-300 text-xs">University</p>
+      </div>
+    </div>
+  </div>
+  <div class="px-5 py-4 border-b border-white border-opacity-10">
+    <div class="flex items-center gap-3">
+      <div class="avatar bg-blue-400 text-white" id="sidebar-avatar" style="width:42px;height:42px;font-size:1rem;">--</div>
+      <div>
+        <p class="text-white font-bold text-sm leading-tight" id="sidebar-name">Loading...</p>
+        <p class="text-blue-300 text-xs" id="sidebar-program">--</p>
+      </div>
+    </div>
+  </div>
+  <nav class="flex-1 py-4 overflow-y-auto">
+    <p class="text-blue-400 text-xs font-bold uppercase px-5 mb-2 tracking-wider">Menu</p>
+    <a href="mentee-dashboard.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Dashboard
+    </a>
+    <a href="mentee-profile.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+      My Profile
+    </a>
+    <a href="mentee-logs.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      My Logs
+    </a>
+    <a href="mentee-schedule.html" class="sidebar-link active">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      Schedule &amp; Reminders
+    </a>
+    <a href="mentee-activities.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+      Activities
+    </a>
+    <a href="mentee-settings.html" class="sidebar-link">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Settings
+    </a>
+    <div class="h-px bg-white bg-opacity-10 mx-5 my-3"></div>
+    <a href="login.html" class="sidebar-link" style="color:#f87171;">
+      <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/></svg>
+      Logout
+    </a>
+  </nav>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <header class="topbar">
+    <div class="flex items-center gap-3">
+      <button onclick="openSidebar()" class="md:hidden text-gray-500 hover:text-blue-700">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <div>
+        <h1 class="brand text-lg font-extrabold text-gray-800 leading-tight">Schedule &amp; Reminders</h1>
+        <p class="text-xs text-gray-400 hidden sm:block">View your upcoming sessions and reminders</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="text-xs text-gray-400 hidden sm:block" id="current-date"></span>
+      <div class="avatar bg-blue-700 text-white" id="topbar-avatar" style="width:36px;height:36px;font-size:0.8rem;">--</div>
+    </div>
+  </header>
+
+  <div class="p-4 md:p-6 max-w-5xl mx-auto">
+
+    <!-- Next session banner -->
+    <div class="card mb-5 fade-up" id="next-session-banner" style="background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:16px;">
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 bg-white bg-opacity-15 rounded-xl flex items-center justify-center flex-shrink-0">
+            <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          </div>
+          <div>
+            <p class="text-blue-200 text-xs font-bold uppercase tracking-wider">Next Session</p>
+            <p class="text-white font-extrabold brand text-lg leading-tight" id="next-title">No upcoming sessions</p>
+            <p class="text-blue-200 text-sm" id="next-detail">—</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-white font-extrabold brand text-2xl" id="next-countdown">—</p>
+          <p class="text-blue-200 text-xs font-semibold">days away</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs: Schedule / Reminders -->
+    <div class="flex gap-3 mb-4 items-center justify-between flex-wrap fade-up" style="animation-delay:0.1s">
+      <div class="view-toggle">
+        <div class="view-btn active" onclick="switchTab('schedule',this)">📅 Schedule</div>
+        <div class="view-btn" onclick="switchTab('reminders',this)">🔔 Reminders</div>
+      </div>
+      <div class="text-xs text-gray-400 bg-gray-100 rounded-lg px-3 py-2 font-semibold">
+        🔒 View only — sessions scheduled by your mentor
+      </div>
+    </div>
+
+    <!-- Schedule tab -->
+    <div id="tab-schedule" class="tab-content active fade-up" style="animation-delay:0.15s">
+      <!-- Week calendar strip -->
+      <div class="card mb-4">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="brand font-bold text-gray-800">This Week</h2>
+          <div class="flex gap-2">
+            <button onclick="shiftWeek(-1)" class="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition-colors">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button onclick="shiftWeek(1)" class="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition-colors">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="flex gap-2 overflow-x-auto pb-1" id="week-strip"></div>
+      </div>
+
+      <!-- Sessions list -->
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="brand font-bold text-gray-800" id="sessions-heading">All Upcoming Sessions</h2>
+          <select id="status-filter" onchange="renderSessions()" class="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-600 font-semibold outline-none bg-white cursor-pointer">
+            <option value="all">All Status</option>
+            <option value="Scheduled">Scheduled</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="Rescheduled">Rescheduled</option>
+          </select>
+        </div>
+        <div id="sessions-list">
+          <div class="empty-state">
+            <svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <p>Loading sessions...</p><span>Please wait</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reminders tab -->
+    <div id="tab-reminders" class="tab-content fade-up" style="animation-delay:0.15s">
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="brand font-bold text-gray-800">Your Reminders</h2>
+          <span class="text-xs text-gray-400 font-semibold" id="unread-count">—</span>
+        </div>
+        <div id="reminders-list">
+          <div class="empty-state">
+            <svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            <p>No reminders</p><span>You're all caught up!</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="h-6"></div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('overlay').classList.add('show');}
+  function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
+  function getInitials(n){if(!n)return'--';return n.trim().split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();}
+  function fmt(d){if(!d)return'—';return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}
+  function fmtDT(d){if(!d)return'—';return new Date(d).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true});}
+
+  const BASE_URL = '/api';
+  const rollNo   = sessionStorage.getItem('rollNo') || null;
+  const token    = sessionStorage.getItem('token')  || null;
+  const headers  = {'Content-Type':'application/json',...(token?{'Authorization':`Bearer ${token}`}:{})};
+
+  let allSessions  = [];
+  let allReminders = [];
+  let weekOffset   = 0;
+  let selectedDate = null;
+
+  const DEMO_SESSIONS = [
+    { scheduleID:1, scheduledDateTime: futureDate(2), meetingType:'Academic Review', venue:'Room 301', agenda:'Semester 5 academic review and goal setting', status:'Scheduled' },
+    { scheduleID:2, scheduledDateTime: futureDate(7), meetingType:'Career Guidance', venue:'Staff Room', agenda:'Internship and placement prep discussion', status:'Scheduled' },
+    { scheduleID:3, scheduledDateTime: pastDate(5),   meetingType:'General Mentoring', venue:'Online (Google Meet)', agenda:'Mid-semester check-in', status:'Completed' },
+    { scheduleID:4, scheduledDateTime: pastDate(20),  meetingType:'Academic Review',  venue:'Room 301', agenda:'Backlog clearance plan', status:'Completed' },
+    { scheduleID:5, scheduledDateTime: futureDate(14), meetingType:'Personal Counselling', venue:'Counsellor Room', agenda:'Stress management session', status:'Rescheduled' },
+  ];
+
+  const DEMO_REMINDERS = [
+    { notificationID:1, title:'Submit your sign-off for Apr 10 log', body:'Your interaction log from April 10 is pending your verification. Please review and confirm.', isRead:false, createdAt: pastDate(1), type:'sign-off' },
+    { notificationID:2, title:'Upcoming session in 2 days', body:'You have a scheduled meeting on ' + fmtDT(futureDate(2)) + ' in Room 301.', isRead:false, createdAt: pastDate(0), type:'session' },
+    { notificationID:3, title:'Activity submission reminder', body:'Deadline to submit extracurricular activities for Semester 4 is approaching.', isRead:true, createdAt: pastDate(3), type:'activity' },
+    { notificationID:4, title:'Meeting rescheduled', body:'Your Personal Counselling session has been rescheduled. New date pending.', isRead:true, createdAt: pastDate(4), type:'session' },
+  ];
+
+  function futureDate(days){ const d=new Date(); d.setDate(d.getDate()+days); return d.toISOString(); }
+  function pastDate(days){ const d=new Date(); d.setDate(d.getDate()-days); return d.toISOString(); }
+
+  function switchTab(tab, el) {
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    document.getElementById('tab-'+tab).classList.add('active');
+    document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  async function init() {
+    try {
+      if (rollNo) {
+        const res  = await fetch(`${BASE_URL}/mentee/profile/${rollNo}`,{headers});
+        const data = await res.json();
+        const name = data.studentName||'';
+        document.getElementById('sidebar-name').textContent    = name||'Student';
+        document.getElementById('sidebar-program').textContent = data.programName?`${data.programName} · Sem ${data.semester}`:'—';
+        const init = getInitials(name);
+        document.getElementById('sidebar-avatar').textContent  = init;
+        document.getElementById('topbar-avatar').textContent   = init;
+      }
+    } catch(e){}
+
+    try {
+      allSessions = rollNo
+        ? await (await fetch(`${BASE_URL}/mentee/sessions/${rollNo}`,{headers})).json()
+        : DEMO_SESSIONS;
+    } catch(e) { allSessions = DEMO_SESSIONS; }
+
+    try {
+      allReminders = rollNo
+        ? await (await fetch(`${BASE_URL}/notifications/${sessionStorage.getItem('loginId')}`,{headers})).json()
+        : DEMO_REMINDERS;
+    } catch(e) { allReminders = DEMO_REMINDERS; }
+
+    updateNextBanner();
+    renderWeekStrip();
+    renderSessions();
+    renderReminders();
+  }
+
+  function updateNextBanner() {
+    const now = new Date();
+    const upcoming = allSessions
+      .filter(s=>s.status==='Scheduled' && new Date(s.scheduledDateTime) > now)
+      .sort((a,b)=>new Date(a.scheduledDateTime)-new Date(b.scheduledDateTime));
+    if (upcoming.length === 0) return;
+    const next = upcoming[0];
+    const dt   = new Date(next.scheduledDateTime);
+    const days = Math.ceil((dt-now)/(1000*60*60*24));
+    document.getElementById('next-title').textContent   = next.agenda || 'Meeting';
+    document.getElementById('next-detail').textContent  = `${fmtDT(next.scheduledDateTime)} · ${next.venue||'—'}`;
+    document.getElementById('next-countdown').textContent = days;
+  }
+
+  function renderWeekStrip() {
+    const strip = document.getElementById('week-strip');
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + weekOffset*7);
+    const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    strip.innerHTML='';
+    for(let i=0;i<7;i++){
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate()+i);
+      const isToday = d.toDateString()===today.toDateString();
+      const isSel   = selectedDate && d.toDateString()===selectedDate.toDateString();
+      const hasEv   = allSessions.some(s=>{
+        const sd=new Date(s.scheduledDateTime); sd.setHours(0,0,0,0);
+        return sd.toDateString()===d.toDateString();
+      });
+      const div=document.createElement('div');
+      div.className=`cal-day${isToday?' today':''}${isSel&&!isToday?' selected':''}${hasEv?' has-event':''}`;
+      div.innerHTML=`<span class="cal-day-name">${days[d.getDay()]}</span><span class="cal-day-num">${d.getDate()}</span>`;
+      const capD=new Date(d);
+      div.onclick=()=>{ selectedDate=isSel?null:capD; renderWeekStrip(); renderSessions(); };
+      strip.appendChild(div);
+    }
+  }
+
+  function shiftWeek(n) { weekOffset+=n; renderWeekStrip(); }
+
+  const SESSION_COLORS = {
+    'Academic Review':{'border':'#3b82f6','bg':'bg-blue-50','text':'text-blue-700','pill':'pill-scheduled'},
+    'Career Guidance':{'border':'#10b981','bg':'bg-green-50','text':'text-green-700','pill':''},
+    'General Mentoring':{'border':'#8b5cf6','bg':'bg-purple-50','text':'text-purple-700','pill':''},
+    'Personal Counselling':{'border':'#f59e0b','bg':'bg-yellow-50','text':'text-yellow-700','pill':''},
+    'Disciplinary':{'border':'#ef4444','bg':'bg-red-50','text':'text-red-700','pill':''},
+  };
+  const STATUS_PILL = { Scheduled:'pill-scheduled', Completed:'pill-completed', Cancelled:'pill-cancelled', Rescheduled:'pill-rescheduled' };
+  const STATUS_LABEL= { Scheduled:'Scheduled', Completed:'Completed', Cancelled:'Cancelled', Rescheduled:'Rescheduled' };
+
+  function renderSessions() {
+    const statusF = document.getElementById('status-filter').value;
+    let list = [...allSessions];
+    if (statusF !== 'all') list = list.filter(s=>s.status===statusF);
+    if (selectedDate) {
+      list = list.filter(s=>{
+        const sd=new Date(s.scheduledDateTime); sd.setHours(0,0,0,0);
+        return sd.toDateString()===selectedDate.toDateString();
+      });
+      document.getElementById('sessions-heading').textContent = `Sessions on ${selectedDate.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}`;
+    } else {
+      list.sort((a,b)=>new Date(a.scheduledDateTime)-new Date(b.scheduledDateTime));
+      document.getElementById('sessions-heading').textContent = statusF==='all'?'All Sessions':`${statusF} Sessions`;
+    }
+
+    const container=document.getElementById('sessions-list');
+    if(list.length===0){
+      container.innerHTML=`<div class="empty-state"><svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><p>No sessions found</p><span>Try adjusting filters</span></div>`;
+      return;
+    }
+
+    container.innerHTML=list.map(s=>{
+      const colors = SESSION_COLORS[s.meetingType] || {border:'#6b7280',bg:'bg-gray-50',text:'text-gray-700'};
+      const pill   = STATUS_PILL[s.status]||'pill-scheduled';
+      const isPast = new Date(s.scheduledDateTime)<new Date();
+      return `<div class="session-card" style="border-color:${colors.border}">
+        <div class="flex items-start justify-between gap-3 flex-wrap">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 flex-wrap mb-1">
+              <span class="font-extrabold brand text-gray-800">${s.agenda||'Meeting'}</span>
+              <span class="text-xs font-bold px-2.5 py-0.5 rounded-full ${pill}">${s.status}</span>
+              ${isPast&&s.status==='Scheduled'?'<span class="text-xs bg-orange-50 text-orange-600 font-bold px-2 py-0.5 rounded-full">Overdue</span>':''}
+            </div>
+            <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+              <span>📅 ${fmtDT(s.scheduledDateTime)}</span>
+              <span>🏷️ ${s.meetingType||'General'}</span>
+              ${s.venue?`<span>📍 ${s.venue}</span>`:''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderReminders() {
+    const unread = allReminders.filter(r=>!r.isRead).length;
+    document.getElementById('unread-count').textContent = unread>0?`${unread} unread`:'All read';
+    const container=document.getElementById('reminders-list');
+    if(allReminders.length===0){
+      container.innerHTML=`<div class="empty-state"><svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg><p>No reminders</p><span>All caught up!</span></div>`;
+      return;
+    }
+    const ICONS = { 'sign-off':'📝', 'session':'📅', 'activity':'⭐', 'default':'🔔' };
+    container.innerHTML=allReminders.map(r=>{
+      const icon=ICONS[r.type]||ICONS.default;
+      return `<div class="reminder-card${!r.isRead?' border-blue-200 bg-blue-50':''} cursor-pointer" onclick="markRead(${r.notificationID}, this)">
+        <div class="w-9 h-9 ${!r.isRead?'bg-blue-100':'bg-gray-100'} rounded-lg flex items-center justify-center flex-shrink-0 text-lg">${icon}</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-start justify-between gap-2">
+            <p class="text-sm font-bold text-gray-800${!r.isRead?' text-blue-900':''}">${r.title}</p>
+            ${!r.isRead?'<span class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"></span>':''}
+          </div>
+          <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">${r.body||''}</p>
+          ${r.createdAt?`<p class="text-xs text-gray-400 mt-1">${fmt(r.createdAt)}</p>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function markRead(id, el) {
+    const r=allReminders.find(r=>r.notificationID===id);
+    if(r&&!r.isRead){
+      r.isRead=true;
+      renderReminders();
+      // API: PATCH /api/notifications/:id/read
+      if(rollNo) fetch(`${BASE_URL}/notifications/${id}/read`,{method:'PATCH',headers}).catch(()=>{});
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
