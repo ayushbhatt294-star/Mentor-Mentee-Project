@@ -141,10 +141,10 @@
   <!-- Mentor Info -->
   <div class="px-5 py-4 border-b border-white border-opacity-10">
     <div class="flex items-center gap-3">
-      <div class="avatar bg-blue-400 text-white" style="width:42px;height:42px;font-size:1rem;">RK</div>
+      <div id="sidebar-avatar" class="avatar bg-blue-400 text-white" style="width:42px;height:42px;font-size:1rem;">--</div>
       <div>
-        <p class="text-white font-bold text-sm leading-tight">Dr. Rajesh Kumar</p>
-        <p class="text-blue-300 text-xs">Computer Science Dept.</p>
+        <p id="sidebar-name" class="text-white font-bold text-sm leading-tight">Loading...</p>
+        <p id="sidebar-dept" class="text-blue-300 text-xs">Faculty</p>
       </div>
     </div>
   </div>
@@ -206,7 +206,7 @@
       </button>
       <div>
         <h1 class="brand text-lg font-extrabold text-gray-800 leading-tight">Dashboard</h1>
-        <p class="text-xs text-gray-400 hidden sm:block">Welcome back, Dr. Rajesh Kumar</p>
+        <p id="topbar-greeting" class="text-xs text-gray-400 hidden sm:block">Welcome back</p>
       </div>
     </div>
     <div class="flex items-center gap-3">
@@ -220,7 +220,7 @@
         <span class="notif-dot absolute top-1.5 right-1.5"></span>
       </button>
       <!-- Avatar -->
-      <div class="avatar bg-blue-700 text-white" style="width:36px;height:36px;font-size:0.8rem;">RK</div>
+      <div id="topbar-avatar" class="avatar bg-blue-700 text-white" style="width:36px;height:36px;font-size:0.8rem;">--</div>
     </div>
   </header>
 
@@ -238,7 +238,7 @@
             </svg>
           </div>
         </div>
-        <p class="text-2xl font-extrabold text-gray-800 brand">8</p>
+        <p class="text-2xl font-extrabold text-gray-800 brand" data-stat="mentees">—</p>
         <p class="text-xs text-gray-500 font-semibold mt-0.5">Total Mentees</p>
       </div>
 
@@ -250,7 +250,7 @@
             </svg>
           </div>
         </div>
-        <p class="text-2xl font-extrabold text-gray-800 brand">3</p>
+        <p class="text-2xl font-extrabold text-gray-800 brand" data-stat="sessions">—</p>
         <p class="text-xs text-gray-500 font-semibold mt-0.5">Sessions This Week</p>
       </div>
 
@@ -262,7 +262,7 @@
             </svg>
           </div>
         </div>
-        <p class="text-2xl font-extrabold text-gray-800 brand">2</p>
+        <p class="text-2xl font-extrabold text-gray-800 brand" data-stat="pending">—</p>
         <p class="text-xs text-gray-500 font-semibold mt-0.5">Pending Reviews</p>
       </div>
 
@@ -274,7 +274,7 @@
             </svg>
           </div>
         </div>
-        <p class="text-2xl font-extrabold text-gray-800 brand">6</p>
+        <p class="text-2xl font-extrabold text-gray-800 brand" data-stat="submitted">—</p>
         <p class="text-xs text-gray-500 font-semibold mt-0.5">Logs Submitted</p>
       </div>
 
@@ -289,51 +289,9 @@
           <h2 class="brand font-bold text-gray-800 text-base">My Mentees</h2>
           <a href="mentee-list.html" class="text-blue-600 text-xs font-bold hover:underline">View All →</a>
         </div>
-
-        <div>
-          <!-- Row -->
-          <div class="mentee-row">
-            <div class="flex items-center gap-3">
-              <div class="avatar bg-orange-200 text-orange-700">AN</div>
-              <div>
-                <p class="text-sm font-bold text-gray-800">Amit Negi</p>
-                <p class="text-xs text-gray-400">3rd Year · CSE</p>
-              </div>
-            </div>
-            <span class="badge-present text-xs font-bold px-2.5 py-1 rounded-full">Active</span>
-          </div>
-
-          <div class="mentee-row">
-            <div class="flex items-center gap-3">
-              <div class="avatar bg-pink-200 text-pink-700">PS</div>
-              <div>
-                <p class="text-sm font-bold text-gray-800">Priya Sharma</p>
-                <p class="text-xs text-gray-400">2nd Year · CSE</p>
-              </div>
-            </div>
-            <span class="badge-present text-xs font-bold px-2.5 py-1 rounded-full">Active</span>
-          </div>
-
-          <div class="mentee-row">
-            <div class="flex items-center gap-3">
-              <div class="avatar bg-teal-200 text-teal-700">RV</div>
-              <div>
-                <p class="text-sm font-bold text-gray-800">Rohan Verma</p>
-                <p class="text-xs text-gray-400">4th Year · CSE</p>
-              </div>
-            </div>
-            <span class="badge-pending text-xs font-bold px-2.5 py-1 rounded-full">Log Due</span>
-          </div>
-
-          <div class="mentee-row">
-            <div class="flex items-center gap-3">
-              <div class="avatar bg-purple-200 text-purple-700">SK</div>
-              <div>
-                <p class="text-sm font-bold text-gray-800">Sunita Kaur</p>
-                <p class="text-xs text-gray-400">2nd Year · CSE</p>
-              </div>
-            </div>
-            <span class="badge-absent text-xs font-bold px-2.5 py-1 rounded-full">Inactive</span>
+        <div data-list="mentees">
+          <div class="text-center py-8 text-gray-400">
+            <p class="text-sm font-semibold">Loading mentees...</p>
           </div>
         </div>
       </div>
@@ -345,44 +303,10 @@
           <a href="mentor-interactions.html" class="text-blue-600 text-xs font-bold hover:underline">View All →</a>
         </div>
 
-        <div class="space-y-3">
-
-          <div class="flex gap-3 items-start p-3 bg-blue-50 rounded-xl">
-            <div class="bg-blue-600 text-white rounded-lg px-2.5 py-1.5 text-center min-w-[44px]">
-              <p class="text-xs font-bold leading-none">MAY</p>
-              <p class="text-lg font-extrabold brand leading-tight">17</p>
-            </div>
-            <div class="flex-1">
-              <p class="text-sm font-bold text-gray-800">Amit Negi</p>
-              <p class="text-xs text-gray-500">Academic Progress Review</p>
-              <p class="text-xs text-blue-600 font-semibold mt-0.5">10:00 AM · Room 204</p>
-            </div>
+        <div class="space-y-3" data-list="sessions">
+          <div class="text-center py-8 text-gray-400">
+            <p class="text-sm font-semibold">Loading sessions...</p>
           </div>
-
-          <div class="flex gap-3 items-start p-3 bg-green-50 rounded-xl">
-            <div class="bg-green-600 text-white rounded-lg px-2.5 py-1.5 text-center min-w-[44px]">
-              <p class="text-xs font-bold leading-none">MAY</p>
-              <p class="text-lg font-extrabold brand leading-tight">19</p>
-            </div>
-            <div class="flex-1">
-              <p class="text-sm font-bold text-gray-800">Priya Sharma</p>
-              <p class="text-xs text-gray-500">Career Counselling</p>
-              <p class="text-xs text-green-600 font-semibold mt-0.5">2:30 PM · Online</p>
-            </div>
-          </div>
-
-          <div class="flex gap-3 items-start p-3 bg-yellow-50 rounded-xl">
-            <div class="bg-yellow-500 text-white rounded-lg px-2.5 py-1.5 text-center min-w-[44px]">
-              <p class="text-xs font-bold leading-none">MAY</p>
-              <p class="text-lg font-extrabold brand leading-tight">22</p>
-            </div>
-            <div class="flex-1">
-              <p class="text-sm font-bold text-gray-800">Rohan Verma</p>
-              <p class="text-xs text-gray-500">Project Discussion</p>
-              <p class="text-xs text-yellow-600 font-semibold mt-0.5">11:00 AM · Room 104</p>
-            </div>
-          </div>
-
         </div>
       </div>
 
@@ -392,83 +316,23 @@
     <div class="card mb-4">
       <div class="flex items-center justify-between mb-4">
         <h2 class="brand font-bold text-gray-800 text-base">Mentee Progress Overview</h2>
-        <span class="text-xs text-gray-400">Semester 2 · 2024-25</span>
+        <span class="text-xs text-gray-400">Current Semester</span>
       </div>
 
-      <div class="space-y-4">
-
-        <div>
-          <div class="flex justify-between mb-1">
-            <span class="text-sm font-semibold text-gray-700">Amit Negi</span>
-            <span class="text-sm font-bold text-blue-600">82%</span>
-          </div>
-          <div class="progress-bar"><div class="progress-fill" style="width:82%"></div></div>
+      <div class="space-y-4" data-list="progress">
+        <div class="text-center py-8 text-gray-400">
+          <p class="text-sm font-semibold">Loading progress data...</p>
         </div>
-
-        <div>
-          <div class="flex justify-between mb-1">
-            <span class="text-sm font-semibold text-gray-700">Priya Sharma</span>
-            <span class="text-sm font-bold text-blue-600">75%</span>
-          </div>
-          <div class="progress-bar"><div class="progress-fill" style="width:75%"></div></div>
-        </div>
-
-        <div>
-          <div class="flex justify-between mb-1">
-            <span class="text-sm font-semibold text-gray-700">Rohan Verma</span>
-            <span class="text-sm font-bold text-blue-600">60%</span>
-          </div>
-          <div class="progress-bar"><div class="progress-fill" style="width:60%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"></div></div>
-        </div>
-
-        <div>
-          <div class="flex justify-between mb-1">
-            <span class="text-sm font-semibold text-gray-700">Sunita Kaur</span>
-            <span class="text-sm font-bold text-red-500">42%</span>
-          </div>
-          <div class="progress-bar"><div class="progress-fill" style="width:42%;background:linear-gradient(90deg,#ef4444,#f87171)"></div></div>
-        </div>
-
       </div>
     </div>
 
     <!-- ── Recent Activity ── -->
     <div class="card">
       <h2 class="brand font-bold text-gray-800 text-base mb-4">Recent Activity</h2>
-      <div class="space-y-3">
-
-        <div class="flex gap-3 items-start">
-          <div class="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-          <div>
-            <p class="text-sm text-gray-800">Interaction log submitted by <strong>Amit Negi</strong></p>
-            <p class="text-xs text-gray-400">Today, 9:15 AM</p>
-          </div>
+      <div class="space-y-3" data-list="activity">
+        <div class="text-center py-8 text-gray-400">
+          <p class="text-sm font-semibold">Loading activities...</p>
         </div>
-
-        <div class="flex gap-3 items-start">
-          <div class="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-          <div>
-            <p class="text-sm text-gray-800">Session completed with <strong>Priya Sharma</strong></p>
-            <p class="text-xs text-gray-400">Yesterday, 2:30 PM</p>
-          </div>
-        </div>
-
-        <div class="flex gap-3 items-start">
-          <div class="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
-          <div>
-            <p class="text-sm text-gray-800">Log review pending for <strong>Rohan Verma</strong></p>
-            <p class="text-xs text-gray-400">16 May, 11:00 AM</p>
-          </div>
-        </div>
-
-        <div class="flex gap-3 items-start">
-          <div class="w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
-          <div>
-            <p class="text-sm text-gray-800"><strong>Sunita Kaur</strong> missed scheduled session</p>
-            <p class="text-xs text-gray-400">14 May, 3:00 PM</p>
-          </div>
-        </div>
-
       </div>
     </div>
 
@@ -479,6 +343,11 @@
 </div>
 
 <script>
+  const BASE_URL = '/api';
+  const empNo   = sessionStorage.getItem('empNo') || null;
+  const token   = sessionStorage.getItem('token') || null;
+  const headers = {'Content-Type':'application/json',...(token?{'Authorization':`Bearer ${token}`}:{})};
+
   // Current date in topbar
   const d = new Date();
   const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
@@ -493,6 +362,123 @@
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('overlay').classList.remove('show');
   }
+
+  function getInitials(name) {
+    if (!name) return '--';
+    return name.trim().split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+  }
+
+  // Load dashboard data
+  async function loadDashboard() {
+    if (!empNo) {
+      console.log('No empNo in session');
+      return;
+    }
+
+    try {
+      // Load mentor profile
+      const profileRes = await fetch(`${BASE_URL}/mentor/profile/${empNo}`, { headers });
+      const profile = await profileRes.json();
+      document.getElementById('sidebar-name').textContent = profile.empName || 'Faculty';
+      document.getElementById('sidebar-dept').textContent = profile.profileName || 'Department';
+      const initials = getInitials(profile.empName);
+      document.getElementById('sidebar-avatar').textContent = initials;
+      document.getElementById('topbar-avatar').textContent = initials;
+    } catch (e) {
+      console.error('Error loading mentor profile:', e);
+    }
+
+    try {
+      // Load stats
+      const statsRes = await fetch(`${BASE_URL}/mentor/dashboard/stats/${empNo}`, { headers });
+      const stats = await statsRes.json();
+      document.querySelector('[data-stat="mentees"]').textContent = stats.totalMentees || '0';
+      document.querySelector('[data-stat="sessions"]').textContent = stats.sessionsThisWeek || '0';
+      document.querySelector('[data-stat="pending"]').textContent = stats.pendingReviews || '0';
+      document.querySelector('[data-stat="submitted"]').textContent = stats.logsSubmitted || '0';
+    } catch (e) {
+      console.error('Error loading stats:', e);
+    }
+
+    try {
+      // Load mentees list
+      const menteesRes = await fetch(`${BASE_URL}/mentor/mentees/${empNo}?limit=4`, { headers });
+      const mentees = await menteesRes.json();
+      const menteesList = document.querySelector('[data-list="mentees"]');
+      if (mentees && mentees.length > 0) {
+        menteesList.innerHTML = mentees.map(m => `
+          <div class="mentee-row">
+            <div class="flex items-center gap-3">
+              <div class="avatar" style="background-color: hsl(${Math.random()*360}, 70%, 80%); color: hsl(${Math.random()*360}, 70%, 30%);">${getInitials(m.studentName)}</div>
+              <div>
+                <p class="text-sm font-bold text-gray-800">${m.studentName}</p>
+                <p class="text-xs text-gray-400">${m.semester}rd Year · ${m.programName || 'CSE'}</p>
+              </div>
+            </div>
+            <span class="badge-present text-xs font-bold px-2.5 py-1 rounded-full">Active</span>
+          </div>
+        `).join('');
+      }
+    } catch (e) {
+      console.error('Error loading mentees:', e);
+    }
+
+    try {
+      // Load upcoming sessions
+      const sessionsRes = await fetch(`${BASE_URL}/mentor/sessions/${empNo}?status=Scheduled&limit=3`, { headers });
+      const sessions = await sessionsRes.json();
+      const sessionsList = document.querySelector('[data-list="sessions"]');
+      if (sessions && sessions.length > 0) {
+        const colors = ['bg-blue-600', 'bg-green-600', 'bg-yellow-500'];
+        const bgColors = ['bg-blue-50', 'bg-green-50', 'bg-yellow-50'];
+        const textColors = ['text-blue-600', 'text-green-600', 'text-yellow-600'];
+        sessionsList.innerHTML = sessions.map((s, i) => {
+          const dt = new Date(s.scheduledDateTime);
+          const month = dt.toLocaleString('en-IN', {month:'short'}).toUpperCase();
+          const day = dt.getDate();
+          const time = dt.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+          return `
+            <div class="flex gap-3 items-start p-3 ${bgColors[i % 3]} rounded-xl">
+              <div class="${colors[i % 3]} text-white rounded-lg px-2.5 py-1.5 text-center min-w-[44px]">
+                <p class="text-xs font-bold leading-none">${month}</p>
+                <p class="text-lg font-extrabold leading-tight">${day}</p>
+              </div>
+              <div class="flex-1">
+                <p class="text-sm font-bold text-gray-800">${s.studentName || 'Meeting'}</p>
+                <p class="text-xs text-gray-500">${s.meetingType || 'Session'}</p>
+                <p class="text-xs ${textColors[i % 3]} font-semibold mt-0.5">${time} · ${s.venue || '—'}</p>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    } catch (e) {
+      console.error('Error loading sessions:', e);
+    }
+
+    try {
+      // Load recent activity
+      const activityRes = await fetch(`${BASE_URL}/mentor/activity/${empNo}?limit=4`, { headers });
+      const activities = await activityRes.json();
+      const activityList = document.querySelector('[data-list="activity"]');
+      if (activities && activities.length > 0) {
+        activityList.innerHTML = activities.map(a => `
+          <div class="flex gap-3 items-start">
+            <div class="w-2 h-2 ${a.type === 'log' ? 'bg-green-500' : a.type === 'session' ? 'bg-blue-500' : 'bg-yellow-500'} rounded-full mt-2 flex-shrink-0"></div>
+            <div>
+              <p class="text-sm text-gray-800">${a.description}</p>
+              <p class="text-xs text-gray-400">${a.timestamp || 'Recently'}</p>
+            </div>
+          </div>
+        `).join('');
+      }
+    } catch (e) {
+      console.error('Error loading activity:', e);
+    }
+  }
+
+  // Load on page ready
+  document.addEventListener('DOMContentLoaded', loadDashboard);
 </script>
 </body>
 </html>

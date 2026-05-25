@@ -288,24 +288,6 @@
   let weekOffset   = 0;
   let selectedDate = null;
 
-  const DEMO_SESSIONS = [
-    { scheduleID:1, scheduledDateTime: futureDate(2), meetingType:'Academic Review', venue:'Room 301', agenda:'Semester 5 academic review and goal setting', status:'Scheduled' },
-    { scheduleID:2, scheduledDateTime: futureDate(7), meetingType:'Career Guidance', venue:'Staff Room', agenda:'Internship and placement prep discussion', status:'Scheduled' },
-    { scheduleID:3, scheduledDateTime: pastDate(5),   meetingType:'General Mentoring', venue:'Online (Google Meet)', agenda:'Mid-semester check-in', status:'Completed' },
-    { scheduleID:4, scheduledDateTime: pastDate(20),  meetingType:'Academic Review',  venue:'Room 301', agenda:'Backlog clearance plan', status:'Completed' },
-    { scheduleID:5, scheduledDateTime: futureDate(14), meetingType:'Personal Counselling', venue:'Counsellor Room', agenda:'Stress management session', status:'Rescheduled' },
-  ];
-
-  const DEMO_REMINDERS = [
-    { notificationID:1, title:'Submit your sign-off for Apr 10 log', body:'Your interaction log from April 10 is pending your verification. Please review and confirm.', isRead:false, createdAt: pastDate(1), type:'sign-off' },
-    { notificationID:2, title:'Upcoming session in 2 days', body:'You have a scheduled meeting on ' + fmtDT(futureDate(2)) + ' in Room 301.', isRead:false, createdAt: pastDate(0), type:'session' },
-    { notificationID:3, title:'Activity submission reminder', body:'Deadline to submit extracurricular activities for Semester 4 is approaching.', isRead:true, createdAt: pastDate(3), type:'activity' },
-    { notificationID:4, title:'Meeting rescheduled', body:'Your Personal Counselling session has been rescheduled. New date pending.', isRead:true, createdAt: pastDate(4), type:'session' },
-  ];
-
-  function futureDate(days){ const d=new Date(); d.setDate(d.getDate()+days); return d.toISOString(); }
-  function pastDate(days){ const d=new Date(); d.setDate(d.getDate()-days); return d.toISOString(); }
-
   function switchTab(tab, el) {
     document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
     document.getElementById('tab-'+tab).classList.add('active');
@@ -328,16 +310,16 @@
     } catch(e){}
 
     try {
-      allSessions = rollNo
-        ? await (await fetch(`${BASE_URL}/mentee/sessions/${rollNo}`,{headers})).json()
-        : DEMO_SESSIONS;
-    } catch(e) { allSessions = DEMO_SESSIONS; }
+      if (rollNo) {
+        allSessions = await (await fetch(`${BASE_URL}/mentee/sessions/${rollNo}`,{headers})).json();
+      }
+    } catch(e) { console.error('Error fetching sessions:', e); }
 
     try {
-      allReminders = rollNo
-        ? await (await fetch(`${BASE_URL}/notifications/${sessionStorage.getItem('loginId')}`,{headers})).json()
-        : DEMO_REMINDERS;
-    } catch(e) { allReminders = DEMO_REMINDERS; }
+      if (sessionStorage.getItem('loginId')) {
+        allReminders = await (await fetch(`${BASE_URL}/notifications/${sessionStorage.getItem('loginId')}`,{headers})).json();
+      }
+    } catch(e) { console.error('Error fetching reminders:', e); }
 
     updateNextBanner();
     renderWeekStrip();

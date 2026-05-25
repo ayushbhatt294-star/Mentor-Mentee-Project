@@ -141,10 +141,10 @@
   <!-- Mentor Info -->
   <div class="px-5 py-4 border-b border-white border-opacity-10">
     <div class="flex items-center gap-3">
-      <div class="avatar bg-blue-400 text-white" style="width:42px;height:42px;font-size:1rem;">RK</div>
+      <div id="sidebar-avatar" class="avatar bg-blue-400 text-white" style="width:42px;height:42px;font-size:1rem;">--</div>
       <div>
-        <p class="text-white font-bold text-sm leading-tight">Dr. Rajesh Kumar</p>
-        <p class="text-blue-300 text-xs">Computer Science Dept.</p>
+        <p id="sidebar-name" class="text-white font-bold text-sm leading-tight">Loading...</p>
+        <p id="sidebar-dept" class="text-blue-300 text-xs">Faculty</p>
       </div>
     </div>
   </div>
@@ -397,26 +397,6 @@
   let editingID   = null;
   let selectedMentees = [];
 
-  // Demo data
-  function futureDate(d,h=10,m=0){const dt=new Date();dt.setDate(dt.getDate()+d);dt.setHours(h,m,0,0);return dt.toISOString();}
-  function pastDate(d,h=10,m=0){const dt=new Date();dt.setDate(dt.getDate()-d);dt.setHours(h,m,0,0);return dt.toISOString();}
-
-  const DEMO_MENTEES = [
-    {rollNo:'21CS001',studentName:'Aarav Sharma',semester:5},
-    {rollNo:'21CS002',studentName:'Priya Mehta',semester:5},
-    {rollNo:'21CS003',studentName:'Rohan Iyer',semester:3},
-    {rollNo:'21CS004',studentName:'Sneha Patel',semester:5},
-  ];
-
-  const DEMO_SESSIONS = [
-    {scheduleID:1,rollNo:'21CS001',studentName:'Aarav Sharma',scheduledDateTime:futureDate(2,10,30),meetingType:'Academic Review',venue:'Room 301',agenda:'Semester 5 academic review and goal setting',status:'Scheduled',durationMinutes:60},
-    {scheduleID:2,rollNo:'21CS002',studentName:'Priya Mehta',scheduledDateTime:futureDate(5,14,0),meetingType:'Career Guidance',venue:'Staff Room',agenda:'Internship and placement prep discussion',status:'Scheduled',durationMinutes:60},
-    {scheduleID:3,rollNo:'21CS001',studentName:'Aarav Sharma',scheduledDateTime:pastDate(5,11,0),meetingType:'General Mentoring',venue:'Online',agenda:'Mid-semester check-in',status:'Completed',durationMinutes:30},
-    {scheduleID:4,rollNo:'21CS003',studentName:'Rohan Iyer',scheduledDateTime:pastDate(10,9,0),meetingType:'Academic Review',venue:'Room 301',agenda:'Backlog clearance plan',status:'Completed',durationMinutes:60},
-    {scheduleID:5,rollNo:'21CS004',studentName:'Sneha Patel',scheduledDateTime:futureDate(12,15,0),meetingType:'Personal Counselling',venue:'Counsellor Room',agenda:'Stress management session',status:'Rescheduled',durationMinutes:45},
-    {scheduleID:6,rollNo:'21CS002',studentName:'Priya Mehta',scheduledDateTime:pastDate(3,10,0),meetingType:'Disciplinary',venue:'HoD Cabin',agenda:'Attendance warning follow-up',status:'Cancelled',durationMinutes:30},
-  ];
-
   const STATUS_PILL = {Scheduled:'pill-scheduled',Completed:'pill-completed',Cancelled:'pill-cancelled',Rescheduled:'pill-rescheduled'};
   const SESSION_COLORS = {'Academic Review':'#3b82f6','Career Guidance':'#10b981','General Mentoring':'#8b5cf6','Personal Counselling':'#f59e0b','Disciplinary':'#ef4444','Group Session':'#06b6d4'};
 
@@ -438,16 +418,16 @@
     } catch(e){}
 
     try {
-      allMentees = empNo
-        ? await (await fetch(`${BASE_URL}/mentor/mentees/${empNo}`,{headers})).json()
-        : DEMO_MENTEES;
-    } catch(e){ allMentees = DEMO_MENTEES; }
+      if (empNo) {
+        allMentees = await (await fetch(`${BASE_URL}/mentor/mentees/${empNo}`,{headers})).json();
+      }
+    } catch(e){ console.error('Error fetching mentees:', e); }
 
     try {
-      allSessions = empNo
-        ? await (await fetch(`${BASE_URL}/mentor/sessions/${empNo}`,{headers})).json()
-        : DEMO_SESSIONS;
-    } catch(e){ allSessions = DEMO_SESSIONS; }
+      if (empNo) {
+        allSessions = await (await fetch(`${BASE_URL}/mentor/sessions/${empNo}`,{headers})).json();
+      }
+    } catch(e){ console.error('Error fetching sessions:', e); }
 
     populateMenteeFilter();
     updateStats();

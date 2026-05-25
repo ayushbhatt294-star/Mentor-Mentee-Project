@@ -253,15 +253,6 @@
   let allLogs    = [];
   let activeFilter = 'all';
 
-  /* ── Demo data (remove when API is live) ── */
-  const DEMO_LOGS = [
-    { interactionID:1, interactionDate:'2025-04-10', meetingType:'Academic Review', venue:'Room 301', academicRemarks:'Discussed academic performance for Semester 4. Student is on track with 78% aggregate. Advised to improve Maths score.', personalRemarks:'Student seems stressed about placements. Suggested counselling.', mentalHealthRemarks:'Normal', financialRemarks:'None', menteeVerified:true, facultyVerified:true, semester:4 },
-    { interactionID:2, interactionDate:'2025-03-15', meetingType:'Career Guidance', venue:'Staff Room', academicRemarks:'Career path discussion — student interested in software engineering. Shared internship resources.', personalRemarks:'', mentalHealthRemarks:'', financialRemarks:'', menteeVerified:true, facultyVerified:false, semester:4 },
-    { interactionID:3, interactionDate:'2025-02-20', meetingType:'General Mentoring', venue:'Online', academicRemarks:'Mid-semester review. Backlog in subject DSA. Advised to complete assignments.', personalRemarks:'Family situation discussed.', mentalHealthRemarks:'Mild anxiety noted.', financialRemarks:'Applied for scholarship.', menteeVerified:false, facultyVerified:false, semester:4 },
-    { interactionID:4, interactionDate:'2025-01-08', meetingType:'Academic Review', venue:'Room 301', academicRemarks:'Start of semester goals set. Good attendance record.', personalRemarks:'', mentalHealthRemarks:'', financialRemarks:'', menteeVerified:true, facultyVerified:true, semester:4 },
-    { interactionID:5, interactionDate:'2024-11-12', meetingType:'Disciplinary', venue:'HoD Cabin', academicRemarks:'Attendance warning issued. Student committed to improvement.', personalRemarks:'Personal issues cited as reason.', mentalHealthRemarks:'Referred to counsellor.', financialRemarks:'', menteeVerified:true, facultyVerified:true, semester:3 },
-  ];
-
   async function init() {
     // Load profile
     try {
@@ -282,11 +273,9 @@
       if (rollNo) {
         const res  = await fetch(`${BASE_URL}/mentee/logs/${rollNo}`,{headers});
         allLogs    = await res.json();
-      } else {
-        allLogs = DEMO_LOGS; // demo fallback
       }
     } catch(e) {
-      allLogs = DEMO_LOGS; // demo fallback
+      console.error('Error fetching logs:', e);
     }
 
     updateSummary();
